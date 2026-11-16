@@ -1,0 +1,406 @@
+:root {
+  --bg-cabinet: #0b0914;
+  --bg-panel: #161224;
+  --bg-card: #1f1933;
+  --bg-slot-cell: #251e3e;
+  --border-subtle: rgba(155, 93, 229, 0.28);
+  --border-glow: rgba(0, 245, 212, 0.55);
+  --text-primary: #f8f7ff;
+  --text-secondary: #b8b2d1;
+  --accent-chips: #00bbf9;
+  --accent-mult: #ff3366;
+  --accent-devour: #9b5de5;
+  --accent-gold: #fee440;
+  --accent-laser: #00f5d4;
+  --accent-danger: #ff595e;
+  --accent-success: #06d6a0;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: var(--bg-cabinet);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Arcade Cabinet Shell & Top Navigation */
+.arcade-shell {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 12px 18px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.arcade-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.arcade-nav-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.btn-arcade,
+.nav-tab-btn,
+.btn-gdd-tab {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-arcade:hover,
+.nav-tab-btn:hover,
+.btn-gdd-tab:hover {
+  border-color: var(--accent-laser);
+  transform: translateY(-1px);
+}
+
+.nav-tab-btn.active,
+.btn-gdd-tab.active {
+  background: linear-gradient(135deg, var(--accent-devour), #5e35b1);
+  border-color: var(--accent-gold);
+  color: #ffffff;
+}
+
+.btn-primary-action {
+  background: linear-gradient(135deg, var(--accent-mult), #ff7b00);
+  border-color: var(--accent-gold);
+  font-size: 1.08rem;
+  padding: 12px 24px;
+  box-shadow: 0 4px 18px rgba(255, 51, 102, 0.4);
+}
+
+/* Shared Balatro-Style Score & Economy HUD */
+.hud-banner {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hud-top-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.hud-stat-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.hud-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.hud-value {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+
+.hud-enemy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hud-hp-bar-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.hud-hp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-danger), #ff9f1c);
+  transition: width 0.2s ease-out;
+}
+
+.hud-formula-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.hud-formula-equation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-chip-box {
+  padding: 6px 12px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  min-width: 110px;
+  font-family: var(--font-mono);
+}
+
+.hud-box-chips {
+  background: rgba(0, 187, 249, 0.16);
+  border: 2px solid var(--accent-chips);
+}
+
+.hud-box-mult {
+  background: rgba(255, 51, 102, 0.16);
+  border: 2px solid var(--accent-mult);
+}
+
+.hud-box-devour {
+  background: rgba(155, 93, 229, 0.18);
+  border: 2px solid var(--accent-devour);
+}
+
+.hud-box-total {
+  background: rgba(254, 228, 64, 0.16);
+  border: 2px solid var(--accent-gold);
+}
+
+.box-caption {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.box-number {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.formula-op {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--accent-gold);
+}
+
+.hud-combo-banner {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(0, 245, 212, 0.12);
+  border: 1px solid var(--accent-laser);
+  color: var(--accent-laser);
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+
+/* Game Stage & 2D VFX Overlay Canvas */
+.game-stage {
+  position: relative;
+  min-height: 480px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.vfx-overlay-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Scheme 1: 3x3 Devour Reels Grid & Probability Modder */
+.devour-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.devour-cell {
+  background: var(--bg-slot-cell);
+  border: 2px solid var(--border-subtle);
+  border-radius: 10px;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+}
+
+.prob-mod-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+/* Scheme 2: 6-Chamber Revolver Cylinder */
+.revolver-cylinder {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.revolver-chamber {
+  background: var(--bg-slot-cell);
+  border: 2px solid var(--border-subtle);
+  border-radius: 50%;
+  width: 104px;
+  height: 104px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+/* Scheme 3: 1x5 Jackpot TD Slot Turret Bar */
+.td-slot-bar {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.td-pedestal {
+  background: var(--bg-slot-cell);
+  border: 2px solid var(--accent-gold);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+}
+
+/* Scheme 5: 4x4 Abyssal Matrix */
+.abyssal-matrix {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* GDD Viewer Drawer / Panel */
+.gdd-viewer-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gdd-viewer-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.gdd-doc-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gdd-content-body {
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 18px 22px;
+  line-height: 1.65;
+  max-height: 620px;
+  overflow-y: auto;
+}
+
+.gdd-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.gdd-table td {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 6px 10px;
+  font-size: 0.88rem;
+}
+
+.gdd-code-block {
+  background: #090710;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+/* Audio Lab & Sandbox Toolbar */
+.audio-lab-panel,
+.sandbox-toolbar {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.audio-lab-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

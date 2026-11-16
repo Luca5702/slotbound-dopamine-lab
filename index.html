@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slotbound Minimalist Dopamine Lab — 《Slotbound》极简爽游街机大厅</title>
+  <link rel="stylesheet" href="./src/styles/main.css" />
+  <link rel="stylesheet" href="./src/styles/animations.css" />
+</head>
+<body>
+  <div id="app" class="arcade-shell" data-testid="arcade-shell">
+    <header class="arcade-nav" data-testid="arcade-nav">
+      <div class="arcade-brand">
+        <h1>🎰 SLOTBOUND DOPAMINE LAB</h1>
+        <span class="arcade-subtitle">拉杆即结算 · 连线即秒杀 · 15秒极简爽游衍生套件</span>
+      </div>
+      <nav class="arcade-nav-tabs" role="tablist">
+        <button type="button" class="nav-tab-btn active" data-testid="nav-scheme-1" data-scheme-id="devour-reels">
+          👄 吞噬转轮 Devour Reels
+        </button>
+        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-2" data-scheme-id="revolver-dungeon">
+          🔫 左轮地牢 Revolver Dungeon
+        </button>
+        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-3" data-scheme-id="jackpot-td">
+          ⚡ 黄金矿工防线 Jackpot TD
+        </button>
+        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-4" data-scheme-id="sigil-pachinko">
+          🔮 咒印弹珠台 Sigil Pachinko
+        </button>
+        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-5" data-scheme-id="abyssal-grid">
+          ♟️ 深渊矩阵 Abyssal Grid
+        </button>
+        <button type="button" class="nav-tab-btn" data-testid="nav-gdd-viewer" data-scheme-id="gdd">
+          📜 设计文档中心 GDD Viewer
+        </button>
+        <button type="button" class="nav-tab-btn" data-testid="nav-audio-lab" data-scheme-id="audio-lab">
+          🎧 音效与数值实验室 Audio Lab
+        </button>
+      </nav>
+    </header>
+
+    <section id="hud-container" data-testid="hud-container"></section>
+
+    <main id="game-stage" class="game-stage" data-testid="game-stage">
+      <div id="scheme-mount" data-testid="scheme-mount"></div>
+      <canvas id="vfx-canvas" class="vfx-overlay-canvas" data-testid="vfx-canvas" width="960" height="540"></canvas>
+    </main>
+
+    <footer class="sandbox-toolbar" data-testid="sandbox-toolbar">
+      <div class="sandbox-controls-left">
+        <label for="sandbox-seed-input" class="sandbox-label">🎲 确定性种子 (PRNG Seed):</label>
+        <input
+          id="sandbox-seed-input"
+          type="text"
+          class="sandbox-seed-input"
+          data-testid="sandbox-seed-input"
+          value="12345"
+        />
+        <button type="button" class="btn-arcade btn-sandbox-jackpot" data-testid="sandbox-trigger-jackpot">
+          💥 一键触发终极大奖 / Trigger Jackpot
+        </button>
+      </div>
+      <div class="sandbox-controls-right">
+        <button
+          type="button"
+          class="btn-arcade btn-audio-mute"
+          data-testid="audio-mute-toggle"
+          aria-pressed="false"
+        >
+          🔊 音效开启 (Audio ON)
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

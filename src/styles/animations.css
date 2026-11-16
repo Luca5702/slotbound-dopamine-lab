@@ -1,0 +1,109 @@
+/* Screen Shake Intensity Tiers (0..4) */
+@keyframes shake-tier-1-anim {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 2px); }
+  50% { transform: translate(2px, -2px); }
+  75% { transform: translate(-2px, -1px); }
+}
+
+@keyframes shake-tier-2-anim {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-5px, 4px); }
+  40% { transform: translate(5px, -4px); }
+  60% { transform: translate(-4px, -3px); }
+  80% { transform: translate(4px, 3px); }
+}
+
+@keyframes shake-tier-3-anim {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(-10px, 8px) rotate(-0.5deg); }
+  35% { transform: translate(10px, -8px) rotate(0.5deg); }
+  55% { transform: translate(-8px, -6px) rotate(-0.4deg); }
+  75% { transform: translate(8px, 6px) rotate(0.4deg); }
+}
+
+@keyframes shake-tier-4-anim {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  12% { transform: translate(-18px, 14px) rotate(-1.2deg) scale(1.01); }
+  28% { transform: translate(18px, -14px) rotate(1.2deg) scale(1.02); }
+  45% { transform: translate(-15px, -12px) rotate(-1deg); }
+  65% { transform: translate(15px, 12px) rotate(1deg); }
+  82% { transform: translate(-10px, 8px) rotate(-0.5deg); }
+}
+
+.shake-tier-1 {
+  animation: shake-tier-1-anim 0.22s ease-in-out;
+}
+
+.shake-tier-2 {
+  animation: shake-tier-2-anim 0.28s ease-in-out;
+}
+
+.shake-tier-3 {
+  animation: shake-tier-3-anim 0.36s ease-in-out;
+}
+
+.shake-tier-4 {
+  animation: shake-tier-4-anim 0.48s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* Auto-Devour Bite Pulse (< 400ms) */
+@keyframes devour-bite-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(255, 51, 102, 0);
+  }
+  45% {
+    transform: scale(1.18);
+    box-shadow: 0 0 24px rgba(255, 51, 102, 0.85);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(255, 51, 102, 0);
+  }
+}
+
+.anim-devour-bite {
+  animation: devour-bite-pulse 0.32s ease-out;
+}
+
+/* Balatro-Style Multiplier Flame Bounce */
+@keyframes mult-flame-bounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.22) rotate(-2deg); }
+  75% { transform: scale(0.96) rotate(1deg); }
+  100% { transform: scale(1); }
+}
+
+.anim-mult-bounce {
+  animation: mult-flame-bounce 0.28s ease-out;
+}
+
+/* 5-Second Berserk Hyper Laser Sweep Glow */
+@keyframes hyper-laser-sweep {
+  0%, 100% {
+    box-shadow: 0 0 18px #00f5d4, inset 0 0 18px #00f5d4;
+  }
+  50% {
+    box-shadow: 0 0 38px #fee440, inset 0 0 28px #ff3366;
+  }
+}
+
+.anim-laser-active {
+  animation: hyper-laser-sweep 0.5s infinite ease-in-out;
+}
+
+/* Red-Zone Adrenaline Danger Siren (Jackpot TD y >= 0.72) */
+@keyframes red-zone-siren {
+  0%, 100% {
+    border-color: rgba(255, 89, 94, 0.35);
+  }
+  50% {
+    border-color: #ff3366;
+    box-shadow: 0 0 22px rgba(255, 51, 102, 0.65);
+  }
+}
+
+.anim-red-zone-alert {
+  animation: red-zone-siren 0.6s infinite ease-in-out;
+}

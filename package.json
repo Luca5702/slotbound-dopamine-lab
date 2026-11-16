@@ -1,0 +1,14 @@
+{
+  "name": "slotbound-minimalist-dopamine-lab",
+  "version": "1.0.0",
+  "description": "《Slotbound》极简爽游衍生套件 (Slotbound Minimalist Dopamine Lab) — 5 Playable Web Prototypes, Procedural Web Audio Synth, Exponential Balatro Math Engine & GDD Suite",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.js",
+    "test": "node --test tests/unit/*.test.js",
+    "test:e2e": "node scripts/verify-e2e.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
