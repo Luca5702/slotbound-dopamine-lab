@@ -360,4 +360,79 @@ describe('F-S2-03: Russian Roulette Demon Bullet, Lone Bullet Roulette, Grit & R
     view.unmount();
     assert.equal(stageContainer.innerHTML, '');
   });
+
+  it('F-R2-04: supports 3-Bullet Tactical Ammo Belt shop, Click-any-Chamber (#0..#5) targeted loading, Floor 2 Hound dry-click pounce, Overtime counter-attacks, and Post-Wave Relic Draft + Endless Mode', () => {
+    const engine = new RevolverDungeonEngine({ seed: 706, gold: 250 });
+    engine.forceState({ chambers: Array(6).fill('empty') });
+
+    // 1. Target Chamber #4 and purchase from Tactical Ammo Belt
+    engine.selectChamber(4);
+    const goldBefore = engine.getState().gold;
+    const stLoaded = engine.buyAmmoBeltSlot(0);
+    assert.ok(stLoaded.gold < goldBefore);
+    assert.notEqual(stLoaded.chambers[4].id, 'empty');
+    assert.equal(stLoaded.chambers[0].id, 'empty');
+
+    // 2. Floor 2 Boss (twin_headed_hound) pounces on dry click
+    const houndEngine = new RevolverDungeonEngine({ seed: 707 });
+    houndEngine.forceState({
+      wave: 2,
+      floor: 2,
+      enemyHp: 780,
+      enemyMaxHp: 780,
+      pullsRemaining: 4,
+      playerHp: 100,
+      chambers: Array(6).fill('empty'),
+      activeChamberIndex: 0,
+      forcedChamberIndex: 0,
+    });
+    const stHoundDry = houndEngine.performPrimaryAction({ targetChamber: 0 });
+    assert.ok(stHoundDry.playerHp < 100);
+
+    // 3. Overtime Boss counter-attack on surviving Floor Boss
+    const otEngine = new RevolverDungeonEngine({ seed: 708 });
+    otEngine.forceState({
+      wave: 3,
+      floor: 3,
+      enemyHp: 999999,
+      enemyMaxHp: 999999,
+      pullsRemaining: 0,
+      playerHp: 100,
+      chambers: Array(6).fill('lead_bullet'),
+      activeChamberIndex: 0,
+      forcedChamberIndex: 0,
+    });
+    const stOt = otEngine.performPrimaryAction({ targetChamber: 0 });
+    assert.ok(stOt.playerHp < 100);
+
+    // 4. Fatal Demon Bullet backfire sets gameOver === true
+    const fatalEngine = new RevolverDungeonEngine({ seed: 709 });
+    fatalEngine.forceState({
+      playerHp: 10,
+      enemyHp: 999999,
+      chambers: Array(6).fill('demon_bullet'),
+      activeChamberIndex: 0,
+      forcedChamberIndex: 0,
+      forceBackfire: true,
+    });
+    const stFatal = fatalEngine.performPrimaryAction({ targetChamber: 0, forceBackfire: true });
+    assert.equal(stFatal.playerHp, 0);
+    assert.equal(stFatal.gameOver, true);
+
+    // 5. Post-Wave 3-Card Relic Draft & Wave 9+ Endless Mode
+    const draftEngine = new RevolverDungeonEngine({ seed: 710 });
+    draftEngine.forceState({
+      wave: 1,
+      floor: 1,
+      enemyHp: 10,
+      enemyMaxHp: 150,
+      pullsRemaining: 4,
+      chambers: Array(6).fill('heavy_hammer'),
+    });
+    const stFloorClear = draftEngine.performPrimaryAction({ targetChamber: 0 });
+    assert.equal(stFloorClear.wave, 2);
+    assert.ok(Array.isArray(stFloorClear.pendingRelicDraft));
+    assert.equal(stFloorClear.pendingRelicDraft.length, 3);
+  });
 });
+

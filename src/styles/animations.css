@@ -1,4 +1,9 @@
-/* Screen Shake Intensity Tiers (0..4) */
+/* ==========================================================================
+   SLOTBOUND MINIMALIST DOPAMINE LAB — SUB-SECOND (<800ms) CHOREOGRAPHY
+   Screen Shake Tiers 1..4, Reel Tumble/Clack, Predator Lunge, Hit-Stop & Glow
+   ========================================================================== */
+
+/* 1. Screen Shake Intensity Tiers (0..4) — Preserved for T5-06 & VFXCanvas */
 @keyframes shake-tier-1-anim {
   0%, 100% { transform: translate(0, 0); }
   25% { transform: translate(-2px, 2px); }
@@ -47,30 +52,29 @@
   animation: shake-tier-4-anim 0.48s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
-/* Auto-Devour Bite Pulse (< 400ms) */
+/* 2. Auto-Devour Bite Pulse & Balatro Multiplier Bounce (< 400ms) */
 @keyframes devour-bite-pulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 rgba(255, 51, 102, 0);
+    box-shadow: 0 0 0 rgba(247, 127, 0, 0);
   }
   45% {
-    transform: scale(1.18);
-    box-shadow: 0 0 24px rgba(255, 51, 102, 0.85);
+    transform: scale(1.14);
+    box-shadow: 0 0 22px rgba(247, 127, 0, 0.82);
   }
   100% {
     transform: scale(1);
-    box-shadow: 0 0 0 rgba(255, 51, 102, 0);
+    box-shadow: 0 0 0 rgba(247, 127, 0, 0);
   }
 }
 
 .anim-devour-bite {
-  animation: devour-bite-pulse 0.32s ease-out;
+  animation: devour-bite-pulse 0.3s ease-out;
 }
 
-/* Balatro-Style Multiplier Flame Bounce */
 @keyframes mult-flame-bounce {
   0% { transform: scale(1); }
-  40% { transform: scale(1.22) rotate(-2deg); }
+  40% { transform: scale(1.18) rotate(-2deg); }
   75% { transform: scale(0.96) rotate(1deg); }
   100% { transform: scale(1); }
 }
@@ -79,31 +83,232 @@
   animation: mult-flame-bounce 0.28s ease-out;
 }
 
-/* 5-Second Berserk Hyper Laser Sweep Glow */
+/* 3. 5-Second Berserk Hyper Laser Sweep & Red-Zone Adrenaline Siren */
 @keyframes hyper-laser-sweep {
   0%, 100% {
-    box-shadow: 0 0 18px #00f5d4, inset 0 0 18px #00f5d4;
+    box-shadow: 0 0 18px #06d6a0, inset 0 0 18px rgba(6, 214, 160, 0.65);
   }
   50% {
-    box-shadow: 0 0 38px #fee440, inset 0 0 28px #ff3366;
+    box-shadow: 0 0 36px #ffd166, inset 0 0 26px rgba(239, 71, 111, 0.75);
   }
 }
 
-.anim-laser-active {
-  animation: hyper-laser-sweep 0.5s infinite ease-in-out;
+.anim-laser-active,
+.lane-laser-active {
+  animation: hyper-laser-sweep 0.48s infinite ease-in-out;
 }
 
-/* Red-Zone Adrenaline Danger Siren (Jackpot TD y >= 0.72) */
 @keyframes red-zone-siren {
   0%, 100% {
-    border-color: rgba(255, 89, 94, 0.35);
+    border-color: rgba(230, 57, 70, 0.38);
   }
   50% {
-    border-color: #ff3366;
-    box-shadow: 0 0 22px rgba(255, 51, 102, 0.65);
+    border-color: #ef476f;
+    box-shadow: 0 0 22px rgba(239, 71, 111, 0.62);
   }
 }
 
-.anim-red-zone-alert {
+.anim-red-zone-alert,
+.red-zone-alert .td-battlefield-lane {
   animation: red-zone-siren 0.6s infinite ease-in-out;
+}
+
+/* 4. Beat 1 (0-220ms): Reel Tumble & Staggered Mechanical Clack */
+@keyframes reel-tumble {
+  0% { transform: translateY(-6px) scaleY(0.97); filter: brightness(1.12); }
+  50% { transform: translateY(6px) scaleY(1.03); filter: brightness(0.92); }
+  100% { transform: translateY(-6px) scaleY(0.97); filter: brightness(1.12); }
+}
+
+.is-spinning,
+.anim-reel-spin {
+  animation: reel-tumble 0.13s linear infinite;
+}
+
+@keyframes reel-stop-clack {
+  0% { transform: translateY(-14px) scale(0.96); opacity: 0.72; }
+  62% { transform: translateY(4px) scale(1.03); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.is-reel-stopping,
+.anim-reel-clack {
+  animation: reel-stop-clack 0.22s cubic-bezier(0.22, 1.35, 0.36, 1) calc(var(--col-idx, 0) * 60ms) both;
+}
+
+/* 5. Beat 2 (220-500ms): Predator Lunge, Prey Crunch & Abyssal Maw Snap */
+@keyframes predator-lunge-chomp {
+  0% { transform: translate(0, 0) scale(1); }
+  45% {
+    transform: translate(var(--lunge-x, 0px), var(--lunge-y, -6px)) scale(1.18);
+    box-shadow: 0 0 22px rgba(247, 127, 0, 0.85);
+  }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+.is-predator-lunging,
+.anim-predator-lunge {
+  animation: predator-lunge-chomp 0.28s cubic-bezier(0.18, 1.3, 0.32, 1) calc(var(--devour-order, 0) * 45ms) both;
+}
+
+@keyframes prey-crunched {
+  0% { transform: scale(1); filter: brightness(1.8); }
+  55% { transform: scale(0.82) rotate(-4deg); filter: brightness(1.2); }
+  100% { transform: scale(0.94); filter: brightness(0.85); }
+}
+
+.is-prey-crunched,
+.anim-prey-crunched {
+  animation: prey-crunched 0.26s ease-out both;
+}
+
+@keyframes maw-jaw-snap {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.08, 0.92); filter: brightness(1.25); }
+  70% { transform: scale(0.97, 1.05); }
+  100% { transform: scale(1); }
+}
+
+.is-maw-chomping,
+.anim-maw-chomp {
+  animation: maw-jaw-snap 0.32s cubic-bezier(0.2, 1.4, 0.35, 1);
+}
+
+/* 6. Beat 3 (500-720ms): Boss Idle Breathe & Impact Hit-Stop Flash */
+@keyframes boss-idle-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.018); }
+}
+
+.boss-portrait-svg {
+  animation: boss-idle-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes boss-hit-stop {
+  0%, 22% {
+    transform: translate(0, 0) scale(1.04);
+    filter: brightness(2.1) contrast(1.25);
+  }
+  55% {
+    transform: translate(6px, -4px) scale(0.96);
+    filter: brightness(1.35);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    filter: brightness(1);
+  }
+}
+
+.is-hit-flash,
+.anim-boss-hit {
+  animation: boss-hit-stop 0.26s ease-out;
+}
+
+/* 7. Scheme 2-5 & Post-Wave Banner Micro-Choreography */
+@keyframes revolver-muzzle-flash {
+  0% {
+    box-shadow: 0 0 36px rgba(255, 243, 176, 0.95), inset 0 0 22px rgba(247, 127, 0, 0.85);
+    filter: brightness(1.45);
+  }
+  100% {
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.72);
+    filter: brightness(1);
+  }
+}
+
+.is-muzzle-flashing,
+.anim-muzzle-flash {
+  animation: revolver-muzzle-flash 0.24s ease-out;
+}
+
+@keyframes backfire-blood-flash {
+  0%, 100% { box-shadow: none; }
+  40% { box-shadow: inset 0 0 42px rgba(230, 57, 70, 0.82); }
+}
+
+.is-backfired {
+  animation: backfire-blood-flash 0.36s ease-out;
+}
+
+/* Bob ONLY inner icon so .td-enemy-token translate(-50%, -50%) coordinates stay pure */
+@keyframes td-enemy-march-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.td-enemy-token > .td-enemy-icon,
+.td-enemy-token > svg {
+  animation: td-enemy-march-bob 0.55s ease-in-out infinite;
+}
+
+@keyframes peg-sigil-ring {
+  0% { box-shadow: 0 0 0 0 rgba(255, 209, 102, 0.85); }
+  100% { box-shadow: 0 0 0 10px rgba(255, 209, 102, 0); }
+}
+
+.peg-active,
+.is-peg-hit {
+  animation: peg-sigil-ring 0.34s ease-out;
+}
+
+@keyframes crucible-jackpot-glow {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.06); box-shadow: 0 0 20px rgba(6, 214, 160, 0.72); }
+  100% { transform: scale(1); }
+}
+
+.crucible-hit {
+  animation: crucible-jackpot-glow 0.36s ease-out;
+}
+
+@keyframes matrix-lock-slam {
+  0% { transform: scale(1.12); }
+  65% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+.anim-cell-lock {
+  animation: matrix-lock-slam 0.22s ease-out;
+}
+
+@keyframes relic-card-deal {
+  0% { opacity: 0; transform: translateY(10px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.relic-draft-card,
+.relic-pick-card {
+  animation: relic-card-deal 0.24s ease-out both;
+}
+
+.relic-draft-cards > :nth-child(2) {
+  animation-delay: 55ms;
+}
+
+.relic-draft-cards > :nth-child(3) {
+  animation-delay: 110ms;
+}
+
+@keyframes banner-unfurl {
+  0% { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.relic-draft-banner,
+.run-victory-banner,
+.run-defeat-banner {
+  animation: banner-unfurl 0.22s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boss-portrait-svg,
+  .td-enemy-token > .td-enemy-icon,
+  .td-enemy-token > svg,
+  .is-spinning,
+  .anim-reel-spin,
+  .anim-laser-active,
+  .anim-red-zone-alert {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

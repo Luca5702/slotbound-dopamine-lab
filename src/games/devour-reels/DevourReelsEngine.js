@@ -1,12 +1,20 @@
 /**
- * Scheme 1: 《吞噬转轮》(Devour Reels) Pure Deterministic Game Engine (`F-S1-01`, `F-S1-02`, `F-S1-03`)
+ * Scheme 1: 《吞噬转轮》(Devour Reels) Pure Deterministic Game Engine (`F-S1-01`, `F-S1-02`, `F-S1-03`, `F-R2-03`)
  * Zero DOM dependencies — runs in both Browser and Node.js (`node --test`).
  */
 
 import { createPRNG } from '../../core/PRNG.js';
 import { sanitizeNumber, safeClamp } from '../../core/BigNumber.js';
 import { calculateLineMultiplier, calculateSpinDamage } from '../../core/ScoreFormula.js';
-import { createEconomyState, consumePull, settleWaveClear } from '../../core/EconomyEngine.js';
+import {
+  createEconomyState,
+  consumePull,
+  settleWaveClear,
+  startRelicDraft,
+  resolvePendingRelicDraft,
+  enterEndlessMode,
+  spendEconomyGold,
+} from '../../core/EconomyEngine.js';
 import { createEventBus } from '../../core/EventBus.js';
 import { createFlowTracker } from '../../core/FlowTracker.js';
 import {
@@ -16,6 +24,8 @@ import {
   ADJACENCY_MAP,
   DEFAULT_WHEEL_WEIGHTS,
   WHEEL_PRESETS,
+  WHEEL_MOD_COSTS,
+  MAW_WORKSHOP_ITEMS,
   BOSSES,
   getBossForWave,
 } from './config.js';
@@ -69,6 +79,7 @@ export class DevourReelsEngine {
     this.schemeId = 'devour-reels';
     this.seed = Number.isFinite(Number(options.seed)) ? Number(options.seed) : 12345;
     this.prng = createPRNG(this.seed);
+    this.relicPrng = createPRNG((this.seed ^ 0x9e3779b9) >>> 0 || 54321);
     this.bus = options.bus || createEventBus();
     this.flowTracker = options.flowTracker || createFlowTracker({ bus: this.bus });
     this.sound = options.sound || null;
@@ -101,6 +112,7 @@ export class DevourReelsEngine {
     this.mawLevel = 1;
     this.mawBaseAttackBonus = 0;
     this.totalRunDevoured = 0;
+    this.bilePurgeActive = false;
 
     this.wheelProbabilities = normalizeWheelWeights(options.wheelProbabilities || DEFAULT_WHEEL_WEIGHTS);
     this.activePreset = 'baseline';
@@ -108,7 +120,10 @@ export class DevourReelsEngine {
     this._forcedNextGrid = null;
     this.lastDevourEvents = [];
     this.lastMatchedPaylines = [];
-    this.victory = false;
+    this.victory = Boolean(options.victory ?? false);
+    this.gameOver = Boolean(options.gameOver ?? false);
+    this.endlessMode = Boolean(options.endlessMode ?? initialWave > BOSSES.length);
+    this.economy.endlessMode = this.endlessMode;
 
     const defaultIds = [
       'goblin', 'iron_knight', 'goblin',
@@ -180,8 +195,26 @@ export class DevourReelsEngine {
     });
   }
 
+  _applyPendingWheelBoosts() {
+    const map = this.economy?.wheelBoostMap;
+    if (!map || typeof map !== 'object') return;
+    const raw = { ...this.wheelProbabilities };
+    let changed = false;
+    for (const [symId, delta] of Object.entries(map)) {
+      if (SYMBOL_MAP[symId] && Number.isFinite(Number(delta)) && Number(delta) !== 0) {
+        raw[symId] = Math.max(0, (raw[symId] || 0) + Number(delta));
+        changed = true;
+      }
+    }
+    if (changed) {
+      this.wheelProbabilities = normalizeWheelWeights(raw);
+      this.economy.wheelBoostMap = {};
+    }
+  }
+
   setSeed(seed) {
     this.seed = this.prng.setSeed(seed);
+    this.relicPrng = createPRNG((this.seed ^ 0x9e3779b9) >>> 0 || 54321);
     this._forcedNextGrid = null;
     return this.seed;
   }
@@ -192,6 +225,7 @@ export class DevourReelsEngine {
     } else {
       this.prng.setSeed(this.seed);
     }
+    this.relicPrng = createPRNG((this.seed ^ 0x9e3779b9) >>> 0 || 54321);
     this._initCoreState(options);
     return this.getState();
   }
@@ -257,6 +291,9 @@ export class DevourReelsEngine {
 
     if (forcedConfig.playerHp !== undefined) {
       this.playerHp = safeClamp(sanitizeNumber(forcedConfig.playerHp, this.playerHp), 0, this.playerMaxHp);
+      if (this.playerHp > 0 && forcedConfig.gameOver === undefined) {
+        this.gameOver = false;
+      }
     }
 
     if (forcedConfig.indigestion !== undefined) {
@@ -289,6 +326,23 @@ export class DevourReelsEngine {
       );
     }
 
+    if (forcedConfig.victory !== undefined) {
+      this.victory = Boolean(forcedConfig.victory);
+    }
+
+    if (forcedConfig.gameOver !== undefined) {
+      this.gameOver = Boolean(forcedConfig.gameOver);
+    }
+
+    if (forcedConfig.endlessMode !== undefined) {
+      this.endlessMode = Boolean(forcedConfig.endlessMode);
+      this.economy.endlessMode = this.endlessMode;
+    }
+
+    if (forcedConfig.pendingRelicDraft !== undefined) {
+      this.economy.pendingRelicDraft = forcedConfig.pendingRelicDraft;
+    }
+
     if (forcedConfig.wheelProbabilities && typeof forcedConfig.wheelProbabilities === 'object') {
       this.wheelProbabilities = normalizeWheelWeights({
         ...this.wheelProbabilities,
@@ -305,14 +359,116 @@ export class DevourReelsEngine {
   }
 
   /**
+   * Active `[R]` Belch Bile Purge (`indigestion >= 50`):
+   * Vents 45 Indigestion, sprays corrosive stomach acid onto the Siege Boss,
+   * and supercharges the next spin's chain synergy multiplier (`×2.5`).
+   */
+  purgeBile() {
+    if (this.indigestion < 50) {
+      return this.getState();
+    }
+    this.indigestion = safeClamp(this.indigestion - 45, 0, 100);
+    this.bilePurgeActive = true;
+    const acidSplash = Math.max(
+      250,
+      Math.floor((240 + this.mawLevel * 60 + this.mawBaseAttackBonus) * this.economy.greedMultiplier)
+    );
+    if (this.enemyHp > 1) {
+      this.enemyHp = Math.max(1, this.enemyHp - acidSplash);
+    }
+    this.sound?.playChainExplosion(2);
+    this.bus?.emit('maw:bile-purged', {
+      indigestion: this.indigestion,
+      acidSplash,
+      enemyHp: this.enemyHp,
+    });
+    return this.getState();
+  }
+
+  /**
+   * Gold-Backed Maw Upgrade Workshop (`buy_herb` 30G, `buy_armor` 40G, `temper_maw` 60G).
+   * @param {string} [itemId='buy_herb']
+   */
+  upgradeMaw(itemId = 'buy_herb') {
+    const cleanId = String(itemId || 'buy_herb').toLowerCase();
+    const item =
+      MAW_WORKSHOP_ITEMS.find(
+        (it) =>
+          it.id === cleanId ||
+          it.action === cleanId ||
+          it.testid === cleanId ||
+          cleanId.includes(it.id.replace('buy_', ''))
+      ) || MAW_WORKSHOP_ITEMS[0];
+
+    const spent = spendEconomyGold(this.economy, item.cost);
+    if (!spent.ok) {
+      return this.getState();
+    }
+
+    if (item.indigestionDelta) {
+      this.indigestion = safeClamp(this.indigestion + item.indigestionDelta, 0, 100);
+    }
+    if (item.attackBonus) {
+      this.mawBaseAttackBonus += item.attackBonus;
+    }
+    if (item.armorBonus) {
+      this.mawArmor += item.armorBonus;
+    }
+    if (item.levelBonus) {
+      this.mawLevel += item.levelBonus;
+    }
+    this.sound?.playComboChime(3);
+    this.bus?.emit('maw:upgraded', {
+      itemId: item.id,
+      gold: this.economy.gold,
+      mawLevel: this.mawLevel,
+      mawArmor: this.mawArmor,
+      indigestion: this.indigestion,
+    });
+    return this.getState();
+  }
+
+  /**
+   * Explicit 3-Card Relic Draft selection (`relic-pick-0..2`).
+   * @param {string|null} relicId
+   */
+  pickRelic(relicId = null) {
+    resolvePendingRelicDraft(this.economy, relicId);
+    this._applyPendingWheelBoosts();
+    return this.getState();
+  }
+
+  /**
+   * Transitions from Wave 8 Victory into Wave 9+ Endless Mode (`btn-endless-mode`).
+   */
+  enterEndless() {
+    const res = enterEndlessMode(this.economy, BOSSES[BOSSES.length - 1].maxHp);
+    this.endlessMode = true;
+    this.victory = false;
+    this.gameOver = false;
+    const nextBoss = getBossForWave(this.economy.wave);
+    this.enemyName = nextBoss.name;
+    this.enemyMaxHp = res.nextBossHp;
+    this.enemyHp = res.nextBossHp;
+    return this.getState();
+  }
+
+  /**
    * Primary Action (`[Space]`): Spins the 3×3 grid, executes `<1000ms` 8-way adjacency Auto-Devour,
    * evaluates 8 paylines + 5 stomach chain reactions + Indigestion/Bile Eruption, and damages Siege Boss.
    * @param {object} [payload={}]
    */
   performPrimaryAction(payload = {}) {
+    // Non-blocking Relic Draft auto-advance rule (`PROJECT.md § 6.2`, `T6-31`)
+    if (Array.isArray(this.economy.pendingRelicDraft) && this.economy.pendingRelicDraft.length > 0) {
+      resolvePendingRelicDraft(this.economy, null);
+      this._applyPendingWheelBoosts();
+    }
+
     this.flowTracker.startTurn();
     this.flowTracker.startSettlement();
 
+    const wasOvertime = this.economy.pullsRemaining <= 0;
     consumePull(this.economy);
 
     // 1. Determine 9 spun symbols (from forced grid or weighted PRNG)
@@ -359,18 +515,22 @@ export class DevourReelsEngine {
 
       if (symA === symB && symB === symC) {
         const symMeta = SYMBOL_MAP[symA] || SYMBOL_MAP.goblin;
+        const tierFactor = symMeta.tier <= 1 ? 0.45 : 1 + symMeta.tier * 0.25;
         matchedPaylines.push({
           id: line.id,
           name: line.name,
           symbolId: symA,
           cells: [...line.cells],
           matchCount: 3,
-          weight: Number((line.weight * (1 + symMeta.tier * 0.25)).toFixed(3)),
+          weight: Number((line.weight * tierFactor).toFixed(3)),
         });
       }
     }
     this.lastMatchedPaylines = matchedPaylines;
     let lineMultiplier = calculateLineMultiplier(matchedPaylines);
+    if (matchedPaylines.length >= 8 && this.grid.every((c) => c.tier <= 1 && !c.isPredator)) {
+      lineMultiplier = Math.min(lineMultiplier, 36);
+    }
 
     // 3. Execute <1000ms 8-Way Adjacency Auto-Devour (Tier 4 -> Tier 3 -> Tier 2)
     const predators = this.grid
@@ -400,12 +560,7 @@ export class DevourReelsEngine {
           predator.devourCount += 1;
 
           const preyMeta = SYMBOL_MAP[prey.symbolId] || SYMBOL_MAP.goblin;
-          const predMeta = SYMBOL_MAP[predator.symbolId] || SYMBOL_MAP.iron_knight;
-
-          const stacksGained =
-            1 +
-            (preyMeta.devourExtraStacks ? 1 : 0) +
-            (predMeta.devourExtraStacks ? 1 : 0);
+          const stacksGained = 1;
           devourStacks += stacksGained;
 
           const bonusPts = prey.basePoints + (preyMeta.devourBonusPoints || 0);
@@ -463,6 +618,14 @@ export class DevourReelsEngine {
     const comboLabels = [];
     let synergyIndigestionDelta = 0;
 
+    // Consume active [R] Belch Bile Purge buff if primed
+    if (this.bilePurgeActive) {
+      this.bilePurgeActive = false;
+      chainSynergyMultiplier = Number((chainSynergyMultiplier * 3.5).toFixed(4));
+      triggeredSynergies.push('belch_bile_purge (主动胃酸超载喷吐 ×3.5)');
+      comboLabels.push('主动胃酸超载喷吐');
+    }
+
     // Chain Reaction 1: Fireball + Powder Keg Internal Detonation
     if (initialCounts.fireball >= 1 && initialCounts.powder_keg >= 1) {
       const extraPyro = Math.max(0, initialCounts.fireball + initialCounts.powder_keg - 2);
@@ -494,15 +657,16 @@ export class DevourReelsEngine {
       chainSynergyMultiplier = Number((chainSynergyMultiplier * 3.5).toFixed(4));
       this.economy.gold += 50;
       if (devourEvents.length > 0) {
-        devourStacks += 3;
+        devourStacks += 1;
       }
       triggeredSynergies.push('hero_banquet (🍖 勇者饕餮盛宴: Hero Banquet)');
       comboLabels.push('🍖 勇者饕餮盛宴');
     }
 
     // Chain Reaction 4: Curse Transmutation (abyss_apostle + curse_skull)
-    const hasCurseTransmutation =
-      initialCounts.abyss_apostle >= 1 && initialCounts.curse_skull >= 1;
+    const hasCurseTransmutation = devourEvents.some(
+      (e) => e.predatorId === 'abyss_apostle' && e.preyId === 'curse_skull'
+    );
     if (hasCurseTransmutation) {
       chainSynergyMultiplier = Number((chainSynergyMultiplier * 8.0).toFixed(4));
       synergyIndigestionDelta -= 25;
@@ -510,8 +674,8 @@ export class DevourReelsEngine {
       comboLabels.push('☠️ 剧毒化魔炼成');
     }
 
-    // Chain Reaction 5: Full-Board Gluttony (>= 6 devourStacks or >= 5 devoured prey)
-    if (devourStacks >= 6 || devourEvents.length >= 5) {
+    // Chain Reaction 5: Full-Board Gluttony (>= 6 devoured prey cells)
+    if (devourEvents.length >= 6) {
       chainSynergyMultiplier = Number((chainSynergyMultiplier * 10.0).toFixed(4));
       this.mawLevel += 1;
       this.mawBaseAttackBonus += 25;
@@ -575,29 +739,62 @@ export class DevourReelsEngine {
       settlementDurationMs: settlementResult.effectiveDurationMs,
     });
 
-    // 8. Apply Damage to Siege Boss & Settle Wave Clear
+    // 8. Apply Damage to Siege Boss, Execute Boss Traits & Settle Wave Clear / Overtime Strike
+    const currentBoss = getBossForWave(this.economy.wave);
     this.enemyHp = Math.max(0, this.enemyHp - this.lastTurnBreakdown.totalDamage);
 
     if (this.enemyHp <= 0) {
       const clearedWave = this.economy.wave;
       settleWaveClear(this.economy, this.economy.pullsRemaining, clearedWave);
 
-      if (this.economy.wave <= BOSSES.length) {
+      if ((currentBoss.goldMultiplier || 1) > 1) {
+        this.economy.gold += 80;
+      }
+
+      if (clearedWave === BOSSES.length && !this.endlessMode) {
+        this.economy.wave = BOSSES.length;
+        this.victory = true;
+        this.enemyHp = 0;
+        this.economy.pendingRelicDraft = null;
+      } else {
         const nextBoss = getBossForWave(this.economy.wave);
         this.enemyName = nextBoss.name;
         this.enemyMaxHp = nextBoss.maxHp;
         this.enemyHp = nextBoss.maxHp;
-      } else {
-        this.economy.wave = BOSSES.length;
-        this.victory = true;
-        this.enemyHp = 0;
+        startRelicDraft(this.economy, 3, this.relicPrng);
       }
 
       this.bus?.emit('wave:clear', {
         waveCleared: clearedWave,
         nextWave: this.economy.wave,
         settlement: this.economy.lastSettlement,
+        pendingRelicDraft: this.economy.pendingRelicDraft,
       });
+    } else {
+      // Surviving Boss executes active trait (e.g., W3 Alchemical Trebuchet +12 Indigestion)
+      if (currentBoss.indigestionHazard > 0) {
+        this.indigestion = safeClamp(
+          Math.min(99, this.indigestion + currentBoss.indigestionHazard),
+          0,
+          100
+        );
+      }
+      if (currentBoss.armorShred > 0 && !wasOvertime) {
+        this.mawArmor = Math.max(0, this.mawArmor - currentBoss.armorShred);
+      }
+
+      // Overtime Boss Counter-Attack (`pullsRemaining <= 0` prior to pull & Boss survives)
+      if (wasOvertime) {
+        const bossStrike = Math.max(10, sanitizeNumber(currentBoss.attack, 25));
+        const absorbed = Math.min(this.mawArmor, bossStrike);
+        this.mawArmor = Math.max(0, this.mawArmor - absorbed);
+        const unblockedDamage = Math.max(0, bossStrike - absorbed);
+        this.playerHp = safeClamp(this.playerHp - unblockedDamage, 0, this.playerMaxHp);
+        if (this.playerHp <= 0) {
+          this.playerHp = 0;
+          this.gameOver = true;
+        }
+      }
     }
 
     this.flowTracker.completeTurn();
@@ -612,7 +809,11 @@ export class DevourReelsEngine {
   }
 
   /**
-   * Secondary Action: Modifies Wheel Probabilities (`boost`, `banish`, or `preset` switching).
+   * Secondary Action:
+   *  - Active `[R]` Belch Bile Purge (`action: 'purge_bile'`)
+   *  - Maw Upgrade Workshop (`action: 'buy_herb' | 'buy_armor' | 'temper_maw' | 'upgrade_maw'`)
+   *  - Post-Wave Relic Draft pick (`action: 'pick_relic'`) & Endless Mode (`action: 'enter_endless'`)
+   *  - Gold-Backed Wheel Probability Modder (`boost`: 25G, `banish`: 20G, `preset`: 35G)
    * @param {object} [payload={}]
    */
   performSecondaryAction(payload = {}) {
@@ -620,28 +821,66 @@ export class DevourReelsEngine {
       return this.getState();
     }
 
-    const presetName = payload.preset || (payload.action === 'preset' ? payload.presetId || payload.id : null);
+    const actionType = String(payload.action || payload.type || '').toLowerCase();
+
+    if (actionType === 'purge_bile' || actionType === 'bile_purge' || actionType === 'belch') {
+      return this.purgeBile();
+    }
+
+    if (
+      actionType === 'buy_herb' ||
+      actionType === 'buy_armor' ||
+      actionType === 'temper_maw' ||
+      actionType === 'upgrade_maw' ||
+      actionType === 'workshop'
+    ) {
+      return this.upgradeMaw(payload.itemId || payload.upgradeId || actionType);
+    }
+
+    if (actionType === 'pick_relic') {
+      return this.pickRelic(payload.relicId || payload.id);
+    }
+
+    if (actionType === 'enter_endless') {
+      return this.enterEndless();
+    }
+
+    const presetName =
+      payload.preset || (actionType === 'preset' ? payload.presetId || payload.id : null);
     if (presetName) {
       if (WHEEL_PRESETS[presetName]) {
+        if (!payload.free && this.economy.gold > 0) {
+          const cost = Math.min(this.economy.gold, WHEEL_MOD_COSTS.preset);
+          spendEconomyGold(this.economy, cost);
+        }
         this.activePreset = presetName;
         this.wheelProbabilities = normalizeWheelWeights(WHEEL_PRESETS[presetName]);
       }
       return this.getState();
     }
 
-    const actionType = String(payload.action || payload.type || 'boost').toLowerCase();
+    const modAction = actionType || 'boost';
     const symbolId = payload.symbolId || payload.id;
 
     if (!symbolId || !SYMBOL_MAP[symbolId]) {
       return this.getState();
     }
 
-    const raw = { ...this.wheelProbabilities };
-    const delta = Math.max(1, sanitizeNumber(payload.delta, actionType === 'banish' ? 10 : 15));
+    if (!payload.free && this.economy.gold > 0) {
+      const targetCost =
+        modAction === 'banish' || modAction === 'decrease'
+          ? WHEEL_MOD_COSTS.banish
+          : WHEEL_MOD_COSTS.boost;
+      const cost = Math.min(this.economy.gold, targetCost);
+      spendEconomyGold(this.economy, cost);
+    }
 
-    if (actionType === 'banish' || actionType === 'decrease') {
+    const raw = { ...this.wheelProbabilities };
+    const delta = Math.max(1, sanitizeNumber(payload.delta, modAction === 'banish' ? 10 : 15));
+
+    if (modAction === 'banish' || modAction === 'decrease') {
       raw[symbolId] = Math.max(0, (raw[symbolId] || 0) - delta);
-    } else if (actionType === 'boost' || actionType === 'increase') {
+    } else if (modAction === 'boost' || modAction === 'increase') {
       raw[symbolId] = Math.min(1000, (raw[symbolId] || 0) + delta);
     }
 
@@ -655,6 +894,17 @@ export class DevourReelsEngine {
   }
 
   getState() {
+    const boss = getBossForWave(this.economy.wave);
+    const ownedRelics = Array.isArray(this.economy.relics)
+      ? this.economy.relics.map((r) =>
+          r && typeof r === 'object' ? { ...r } : { id: String(r), name: String(r) }
+        )
+      : [];
+    const pendingRelicDraft =
+      Array.isArray(this.economy.pendingRelicDraft) && this.economy.pendingRelicDraft.length > 0
+        ? this.economy.pendingRelicDraft.map((r) => ({ ...r }))
+        : null;
+
     return {
       schemeId: this.id,
       id: this.id,
@@ -673,11 +923,18 @@ export class DevourReelsEngine {
       enemyName: this.enemyName,
       enemyHp: this.enemyHp,
       enemyMaxHp: this.enemyMaxHp,
+      boss: {
+        ...boss,
+        hp: this.enemyHp,
+        maxHp: this.enemyMaxHp,
+        enemyMaxHp: this.enemyMaxHp,
+      },
       indigestion: this.indigestion,
       mawArmor: this.mawArmor,
       mawLevel: this.mawLevel,
       mawBaseAttackBonus: this.mawBaseAttackBonus,
       totalRunDevoured: this.totalRunDevoured,
+      bilePurgeActive: this.bilePurgeActive,
       wheelProbabilities: { ...this.wheelProbabilities },
       activePreset: this.activePreset,
       grid: this.grid.map((cell) => ({ ...cell })),
@@ -692,8 +949,12 @@ export class DevourReelsEngine {
         triggeredSynergies: [...(this.lastTurnBreakdown.triggeredSynergies || [])],
       },
       relics: [...(this.economy.relics || [])],
+      ownedRelics,
+      pendingRelicDraft,
       lastSettlement: this.economy.lastSettlement ? { ...this.economy.lastSettlement } : null,
       victory: this.victory,
+      gameOver: this.gameOver,
+      endlessMode: Boolean(this.endlessMode || this.economy.endlessMode),
     };
   }
 }

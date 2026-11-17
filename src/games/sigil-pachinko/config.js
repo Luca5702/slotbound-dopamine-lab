@@ -1,10 +1,12 @@
 /**
- * Scheme 4: 《咒印弹珠台》(Sigil Pachinko / Alchemical Cascade) — Configuration & Catalog (`F-S4-01`)
+ * Scheme 4: 《咒印弹珠台》(Sigil Pachinko / Alchemical Cascade) — Configuration & Catalog (`F-S4-01`, `F-R2-06`)
  * Top 1×3 Alchemical Orb Spawner, 24-Peg Elemental Cascade Arena (4 staggered rows × 6 pegs),
  * Mid-Air Collision Auto-Devour tiers, and Bottom 5 Multiplier Crucibles (`×2 / ×5 / ×25 JACKPOT`).
  *
  * Zero DOM dependencies — 100% Node & Browser compatible.
  */
+
+import { computeEndlessBossHp } from '../../core/EconomyEngine.js';
 
 export const ARENA_BOUNDS = Object.freeze({
   width: 800,
@@ -13,6 +15,14 @@ export const ARENA_BOUNDS = Object.freeze({
   maxX: 760,
   spawnerY: 55,
   crucibleY: 455,
+});
+
+export const PEG_UPGRADE_COST = 35;
+
+export const AIM_MODES = Object.freeze({
+  left: { id: 'left', zhName: '左路瞄准', shiftX: -55, shiftVx: -48 },
+  center: { id: 'center', zhName: '居中瞄准', shiftX: 0, shiftVx: 0 },
+  right: { id: 'right', zhName: '右路瞄准', shiftX: 55, shiftVx: 48 },
 });
 
 export const ORB_LIST = Object.freeze([
@@ -217,6 +227,8 @@ function buildDefault24Pegs() {
           multBonus: pegType.multBonus,
           goldBonus: pegType.goldBonus,
           devourBonus: pegType.devourBonus,
+          level: 1,
+          upgraded: false,
         })
       );
       index += 1;
@@ -306,12 +318,26 @@ export const BOSSES = Object.freeze([
 export const WAVES = BOSSES;
 
 export function getBossForWave(waveIndex = 1) {
-  const idx = Math.max(0, Math.min(BOSSES.length - 1, Math.floor(Number(waveIndex || 1)) - 1));
-  return { ...BOSSES[idx] };
+  const w = Math.max(1, Math.floor(Number(waveIndex || 1)));
+  if (w <= BOSSES.length) {
+    return { ...BOSSES[w - 1] };
+  }
+  const base8 = BOSSES[BOSSES.length - 1];
+  const endlessHp = computeEndlessBossHp(base8.maxHp, w);
+  return {
+    ...base8,
+    wave: w,
+    name: `${base8.zhName}·无尽W${w}`,
+    zhName: `${base8.zhName}·无尽W${w}`,
+    hp: endlessHp,
+    maxHp: endlessHp,
+  };
 }
 
 export default {
   ARENA_BOUNDS,
+  PEG_UPGRADE_COST,
+  AIM_MODES,
   ORB_LIST,
   ORBS,
   SYMBOLS,

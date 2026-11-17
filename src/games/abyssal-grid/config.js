@@ -1,10 +1,12 @@
 /**
- * Scheme 5: 《深渊矩阵：推运战棋》(Abyssal Grid: Hold-&-Spin Tactical Bingo) — Configuration & Catalog (`F-S5-01`)
+ * Scheme 5: 《深渊矩阵：推运战棋》(Abyssal Grid: Hold-&-Spin Tactical Bingo) — Configuration & Catalog (`F-S5-01`, `F-R2-06`)
  * 4×4 Matrix (16 cells), Fodder vs. Auto-Locking Apex Commanders (`🔒 HOLD`),
  * 4-Way Orthogonal Adjacency (`ORTHOGONAL_NEIGHBORS`), and 10-Line Row/Col/Diag Bingo Evaluator.
  *
  * Zero DOM dependencies — 100% Node & Browser compatible.
  */
+
+import { computeEndlessBossHp } from '../../core/EconomyEngine.js';
 
 export const UNIT_LIST = Object.freeze([
   {
@@ -217,8 +219,20 @@ export const BOSSES = Object.freeze([
 export const WAVES = BOSSES;
 
 export function getBossForWave(waveIndex = 1) {
-  const idx = Math.max(0, Math.min(BOSSES.length - 1, Math.floor(Number(waveIndex || 1)) - 1));
-  return { ...BOSSES[idx] };
+  const w = Math.max(1, Math.floor(Number(waveIndex || 1)));
+  if (w <= BOSSES.length) {
+    return { ...BOSSES[w - 1] };
+  }
+  const base8 = BOSSES[BOSSES.length - 1];
+  const endlessHp = computeEndlessBossHp(base8.maxHp, w);
+  return {
+    ...base8,
+    wave: w,
+    name: `${base8.zhName}·无尽W${w}`,
+    zhName: `${base8.zhName}·无尽W${w}`,
+    hp: endlessHp,
+    maxHp: endlessHp,
+  };
 }
 
 export default {

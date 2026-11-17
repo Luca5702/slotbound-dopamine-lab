@@ -413,4 +413,80 @@ describe('F-S1-03: Indigestion Meter, Bile Eruption, Probability Modder, 8 Siege
     view.unmount();
     assert.equal(stageContainer.innerHTML, '');
   });
+
+  it('F-R2-03: supports active [R] Belch Bile Purge, Gold-backed Maw Upgrade Workshop, Overtime Boss counter-attacks with mawArmor absorption, and Post-Wave Relic Draft + Endless Mode', () => {
+    const engine = new DevourReelsEngine({ seed: 405, gold: 300 });
+
+    // 1. Active [R] Belch Bile Purge only triggers when indigestion >= 50
+    engine.forceState({ indigestion: 30, enemyHp: 10000, enemyMaxHp: 10000 });
+    engine.purgeBile();
+    assert.equal(engine.getState().indigestion, 30);
+
+    engine.forceState({ indigestion: 75, enemyHp: 10000, enemyMaxHp: 10000 });
+    const stPurged = engine.purgeBile();
+    assert.equal(stPurged.indigestion, 30);
+    assert.equal(stPurged.bilePurgeActive, true);
+    assert.ok(stPurged.enemyHp < 10000);
+
+    // 2. Gold-backed Maw Upgrade Workshop
+    const goldBeforeWorkshop = stPurged.gold;
+    const stUpgraded = engine.upgradeMaw('buy_armor');
+    assert.ok(stUpgraded.gold < goldBeforeWorkshop);
+    assert.ok(stUpgraded.mawArmor >= 60);
+
+    // 3. Overtime Boss Counter-Attack & mawArmor hit absorption
+    const unarmored = new DevourReelsEngine({ seed: 406 });
+    unarmored.forceState({
+      wave: 4,
+      enemyHp: 500000,
+      enemyMaxHp: 500000,
+      pullsRemaining: 0,
+      playerHp: 100,
+      mawArmor: 0,
+      grid: Array(9).fill('goblin'),
+    });
+    const stUnarmored = unarmored.performPrimaryAction();
+    assert.ok(stUnarmored.playerHp < 100);
+
+    const armored = new DevourReelsEngine({ seed: 406 });
+    armored.forceState({
+      wave: 4,
+      enemyHp: 500000,
+      enemyMaxHp: 500000,
+      pullsRemaining: 0,
+      playerHp: 100,
+      mawArmor: 80,
+      grid: Array(9).fill('goblin'),
+    });
+    const stArmored = armored.performPrimaryAction();
+    assert.equal(stArmored.playerHp, 100);
+    assert.ok(stArmored.mawArmor < 80);
+
+    // 4. Post-Wave 3-Card Relic Draft, Non-Blocking Auto-Advance, and Wave 9+ Endless Mode
+    const draftEngine = new DevourReelsEngine({ seed: 407 });
+    draftEngine.forceState({ wave: 1, enemyHp: 10, enemyMaxHp: 120, pullsRemaining: 4 });
+    draftEngine.forceNextSpin(Array(9).fill('fireball'));
+    const stWaveClear = draftEngine.performPrimaryAction();
+    assert.equal(stWaveClear.wave, 2);
+    assert.ok(Array.isArray(stWaveClear.pendingRelicDraft));
+    assert.equal(stWaveClear.pendingRelicDraft.length, 3);
+
+    // Non-blocking auto-advance on next spin (with surviving Wave 2 Boss)
+    draftEngine.forceState({ enemyHp: 99999999, enemyMaxHp: 99999999, grid: Array(9).fill('goblin') });
+    const stAutoAdvance = draftEngine.performPrimaryAction();
+    assert.equal(stAutoAdvance.pendingRelicDraft, null);
+    assert.equal(stAutoAdvance.ownedRelics.length, 1);
+
+    // Wave 8 Clear -> Victory -> Enter Wave 9+ Endless Mode
+    draftEngine.forceState({ wave: 8, enemyHp: 10, enemyMaxHp: 85000000, greedMultiplier: 5000 });
+    draftEngine.forceNextSpin(Array(9).fill('abyss_apostle'));
+    const stVictory = draftEngine.performPrimaryAction();
+    assert.equal(stVictory.victory, true);
+
+    const stEndless = draftEngine.enterEndless();
+    assert.equal(stEndless.endlessMode, true);
+    assert.equal(stEndless.wave, 9);
+    assert.ok(stEndless.enemyMaxHp > 85000000);
+  });
 });
+

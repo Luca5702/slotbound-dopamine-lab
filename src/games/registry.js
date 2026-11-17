@@ -116,6 +116,7 @@ export const SCHEMES = Object.freeze([
       engine.forceState?.({
         gold: Math.max(200, engine.economy?.gold ?? 200),
         pullsRemaining: Math.max(1, engine.economy?.pullsRemaining ?? 5),
+        heldPedestals: [false, false, false, false, false],
       });
       engine.forceNextSpin?.([
         'nuke_core',
@@ -172,6 +173,7 @@ export const SCHEMES = Object.freeze([
       matrix16[4] = 'skeleton';
       engine.forceState?.({
         pullsRemaining: Math.max(1, engine.economy?.pullsRemaining ?? 5),
+        lockedCells: [],
       });
       engine.forceNextSpin?.(matrix16);
     },

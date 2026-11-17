@@ -133,3 +133,19 @@ flowchart LR
 | `pedestals` / `activeEffects` | `array/object` | 方案三专属 | 1×5 防御塔底座星级/吞噬状态与全屏冰冻/5秒狂暴激光剩余时间 |
 | `orbs` / `pegs` / `crucibles` | `array` | 方案四专属 | 炼金法球实时坐标、24枚咒印钉充能状态与底部5口倍率坩埚 |
 | `matrix` / `lockedCells` / `bingoLines` | `array` | 方案五专属 | 4×4 战棋矩阵、已锁定统帅格 (`🔒 HOLD`) 与已达成的十线 Bingo 索引 |
+| `pendingRelicDraft` | `array \| null` | 全方案共享 (R2) | 波次击破后生成的 3 张非阻塞候选遗物卡组（点击或按 `[1-3]` 立即选取，直接拉杆自动收入首张） |
+| `victory` / `endlessMode` / `gameOver` | `boolean` | 全方案共享 (R2) | 第 8 波通关胜利标记、Wave 9+ 无尽冲分模式激活态与生命耗尽败北标记 |
+
+---
+
+## 6. 第二轮视觉重构与工业级打磨规范 (`Round 2 Casino-Dungeon Visual & Tactile Overhaul`)
+
+为彻底消除原型期的“测试工具页感”，第二轮架构升级在不引入任何外部图片/音频文件的前提下，构建了完整的暗黑赌场机台视觉与闭环反馈体系：
+
+1. **黑曜石、拉丝黄铜与猩红赌桌绒布视觉系统 (`Obsidian, Brushed Brass & Crimson Felt`)**：
+   * 摒弃通用紫色后台配色，采用深渊黑曜石 (`#090807`)、拉丝黄铜 (`#c89b3c` / `#f3cf7a`)、猩红绒布 (`#2d1317`) 与炼金翡翠 (`#06d6a0`)，在桌面端 `1440×900` 严格贴合 **`100vh` 一屏居中机台布局**，并将调试沙盒收纳为右下角可折叠抽屉 (`sandbox-toolbar`)。
+2. **程序化多图层矢量锻造厂 (`src/ui/SpriteForge.js`)**：
+   * 统一由 `renderSprite(id, options)` 与 `renderBossPortrait(boss, options)` 实时生成 `64×64` 多图层金属倒角实体徽章与 `120×120` 首领动态立绘（覆盖全 5 方案所有符号、子弹、炮塔、法球、咒印钉、战棋单位、8 件遗物与 40 尊波次首领），零原生 OS Emoji 依赖。
+3. **非阻塞式遗物构筑与胜负闭环 (`src/ui/RelicDraftBanner.js`)**：
+   * 每波通关即时弹出三选一遗物横幅 (`relic-draft-banner`)，支持点击选卡、`[1-3]` 快捷键或直接继续拉杆无感自动收卡；第 8 波击败终极首领后弹出胜利横幅 (`run-victory-banner`) 支持进入 **Wave 9+ 无尽冲分模式 (`btn-endless-mode`)**；生命值归零时弹出败北重开横幅 (`run-defeat-banner`)。
+

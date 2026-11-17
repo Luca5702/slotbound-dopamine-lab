@@ -49,6 +49,14 @@ export const TIER_MANIFEST = Object.freeze({
     expectedMinTests: 30,
     expectedCases: 30,
   },
+  6: {
+    tier: 6,
+    id: 'tier6',
+    name: 'Tier 6: Round 2 Visual, Choreography, Geometry & Live Gameplay Polish (35 Cases)',
+    file: 'tests/e2e/tier6-visual-gameplay-polish.test.js',
+    expectedMinTests: 35,
+    expectedCases: 35,
+  },
 });
 
 function parseRequestedTiers(argv) {
@@ -70,7 +78,7 @@ function parseRequestedTiers(argv) {
       }
     }
   }
-  return selected.length > 0 ? selected : [1, 2, 3, 4, 5];
+  return selected.length > 0 ? selected : [1, 2, 3, 4, 5, 6];
 }
 
 function parseNodeTestSummary(output) {
@@ -78,11 +86,15 @@ function parseNodeTestSummary(output) {
   const testsMatch = clean.match(/ℹ\s+tests\s+(\d+)/);
   const passMatch = clean.match(/ℹ\s+pass\s+(\d+)/);
   const failMatch = clean.match(/ℹ\s+fail\s+(\d+)/);
+  const skippedMatch = clean.match(/ℹ\s+skipped\s+(\d+)/);
+  const todoMatch = clean.match(/ℹ\s+todo\s+(\d+)/);
 
   const tests = testsMatch ? Number(testsMatch[1]) : 0;
   const pass = passMatch ? Number(passMatch[1]) : 0;
   const fail = failMatch ? Number(failMatch[1]) : 0;
-  return { tests, pass, fail };
+  const skipped = skippedMatch ? Number(skippedMatch[1]) : 0;
+  const todo = todoMatch ? Number(todoMatch[1]) : 0;
+  return { tests, pass, fail, skipped, todo };
 }
 
 function runSingleTier(tierConfig) {
@@ -96,6 +108,8 @@ function runSingleTier(tierConfig) {
       tests: 0,
       pass: 0,
       fail: 1,
+      skipped: 0,
+      todo: 0,
       durationMs: 0,
       ok: false,
     });
@@ -132,8 +146,14 @@ function runSingleTier(tierConfig) {
 
     child.on('close', (code) => {
       const durationMs = Date.now() - startMs;
-      const { tests, pass, fail } = parseNodeTestSummary(combined);
-      const ok = code === 0 && pass > 0 && fail === 0;
+      const { tests, pass, fail, skipped, todo } = parseNodeTestSummary(combined);
+      const minTests = Number(tierConfig.expectedMinTests || 1);
+      const ok =
+        code === 0 &&
+        pass >= minTests &&
+        fail === 0 &&
+        skipped === 0 &&
+        todo === 0;
       resolve({
         tier: tierConfig.tier,
         name: tierConfig.name,
@@ -142,6 +162,8 @@ function runSingleTier(tierConfig) {
         tests,
         pass,
         fail,
+        skipped,
+        todo,
         durationMs,
         ok,
       });

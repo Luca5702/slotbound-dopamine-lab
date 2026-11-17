@@ -51,8 +51,10 @@
 │   ├── audio/
 │   │   └── SoundEngine.js                  # Procedural Web Audio API synthesizer + window.__AUDIO_LOG__ telemetry
 │   ├── ui/
-│   │   ├── VFXCanvas.js                    # Shared 2D Canvas overlay: projectiles, devour particles, chain explosions, 5s laser sweep, floating numbers, screen shake
-│   │   ├── HUDController.js                # Shared Balatro-style Base × Line Mult × Devour Stacks = Total Damage banner & Wave/Gold/Pulls HUD
+│   │   ├── SpriteForge.js                  # Procedural multi-layered SVG icon & 8-wave Boss portrait forge (zero raw OS emojis)
+│   │   ├── VFXCanvas.js                    # HiDPI 2D Canvas overlay: Bézier devour arcs, comet projectiles, explosions, 5s plasma laser, crit popups, shake
+│   │   ├── HUDController.js                # 5-factor Balatro scoreboard (Chips × Line × Devour × Chain × Greed = Total) + Relic medallions
+│   │   ├── RelicDraftBanner.js             # Non-blocking Wave Clear compound interest + 3-Card Relic Draft + Victory/Endless & Defeat UI
 │   │   └── GDDViewer.js                    # Built-in GDD Library drawer/tab rendering docs/gdd/*.md with interactive "Launch Prototype" buttons
 │   └── games/
 │       ├── registry.js                     # Unified catalog & factory registry for all 5 game schemes
@@ -78,7 +80,7 @@
 │           └── AbyssalGridView.js
 ├── scripts/
 │   ├── serve.js                            # Zero-dependency Node HTTP static server (configurable port, clean MIME types)
-│   └── verify-e2e.js                       # Headless Chromium runner executing full E2E verification suite
+│   └── verify-e2e.js                       # Headless Chromium runner executing full E2E verification suite (Tiers 1–6)
 └── tests/
     ├── unit/                               # Unit & integration tests per module (run via node --test)
     │   ├── core-and-gdd.test.js
@@ -87,14 +89,15 @@
     │   ├── jackpot-td.test.js
     │   ├── explorations-and-hub.test.js
     │   └── tier5-adversarial.test.js
-    └── e2e/                                # Opaque-box & white-box adversarial E2E test suite (Tiers 1–5)
+    └── e2e/                                # Opaque-box & white-box adversarial E2E test suite (Tiers 1–6)
         ├── helpers/
         │   └── e2e-harness.js
         ├── tier1-feature-coverage.test.js
         ├── tier2-boundary-corner.test.js
         ├── tier3-cross-feature.test.js
         ├── tier4-real-world-scenarios.test.js
-        └── tier5-adversarial-hardening.test.js
+        ├── tier5-adversarial-hardening.test.js
+        └── tier6-visual-gameplay-polish.test.js
 ```
 
 ---
@@ -124,6 +127,14 @@ Every Survey feature is assigned a milestone (none unassigned).
 | 17 | `F-S4-01` Scheme 4 Exploration: 《咒印弹珠台》(Sigil Pachinko) | Exploratory Gameplay Prototype A (`src/games/sigil-pachinko/`): 1×3 top Alchemical Orb Spawner + 24-Peg Elemental Cascade Arena + mid-air collision Auto-Devour (`<1s` orb fusion) + ascending peg bounce chimes + bottom 5 Multiplier Crucibles (`×2 / ×5 / ×25 JACKPOT`) + Chaos Tilt nudge mechanic. | M3 | survey |
 | 18 | `F-S5-01` Scheme 5 Exploration: 《深渊矩阵》(Abyssal Grid) | Exploratory Gameplay Prototype B (`src/games/abyssal-grid/`): 4×4 Tactical Hold-&-Respin Matrix where Apex Commanders auto-lock (`🔒 HOLD`) and devour orthogonal fodder neighbors on every respin to complete 10-line Row/Col/Diag Bingo artillery barrages. | M3 | survey |
 | 19 | `F-HUB-01` Unified Arcade Hub, Live GDD Viewer, Audio Lab & Test Bridge | `index.html`, `src/main.js`, `src/games/registry.js`, and `scripts/serve.js`: Persistent top switcher for all 5 schemes + In-App Live GDD Reader + Audio & Math Soundboard + Sandbox Toolbar (seed/combo injection) + unified deterministic E2E telemetry bridge (`window.__SLOTBOUND__` & `window.__SLOTBOUND_TEST__`). | M3 | survey |
+| 20 | `F-R2-01` Obsidian, Brushed Brass & Crimson Felt `100vh` Design System & `SpriteForge` SVG Art | Replace purple-dashboard clichés & raw OS emojis with tactile Casino-Dungeon theme (`index.html`, `src/styles/main.css`, `src/styles/animations.css`) fitting `100vh` (`1440×900` desktop & `390×844` mobile) with complete styles for all 5 schemes, plus `src/ui/SpriteForge.js` multi-layered procedural SVG icons & 8-wave Boss portraits (`MockElement`-safe self-closing SVG tags). | M5 | r2_survey |
+| 21 | `F-R2-02` HiDPI `VFXCanvas`, 5-Factor `HUDController`, `RelicDraftBanner` & Master-Compressed `SoundEngine` | Upgrade `VFXCanvas.js` (`resolveAnchor`, Bézier devour suction arcs, comet projectiles, plasma laser, crit popups, `T5-06` spy-safe), `HUDController.js` (all 5 factors: `Chips × Line × Devour × Chain × Greed = Total` + Relic medallions + localized synergies), `src/ui/RelicDraftBanner.js` (non-blocking Wave Clear interest + 3-Card Relic Draft + Victory/Endless & Defeat UI), `SoundEngine.js` (`DynamicsCompressorNode`, procedural noise transients, `55ms` chime micro-arpeggiator, `T5-05` spy-safe), and `README.md`/GDDs with public GitHub Pages link. | M5 | r2_survey |
+| 22 | `F-R2-03` Scheme 1 (`devour-reels`) R2 Visual & Gameplay Overhaul | 3-column `100vh` cockpit + on-stage SVG Siege Boss & animated Abyssal Maw, `<800ms` staggered reel-spin -> predator-lunge-bite -> Boss HP chunking choreography, Gold-backed Wheel Modding & Maw Upgrade Workshop, active `[R] Belch Bile Purge` (`indigestion >= 50`), real Boss traits & `mawArmor` hit absorption on Overtime, and wired 3-Card Relic Draft + Victory/Endless/Defeat. | M6 | r2_survey |
+| 23 | `F-R2-04` Scheme 2 (`revolver-dungeon`) R2 Visual & Gameplay Overhaul | True radial `60°` circular 6-chamber rotating drum (`cos/sin` around brass spindle + top `12 o'clock` hammer reticle), 3-Bullet Tactical Ammo Belt shop + Click-any-Chamber (`#0..#5`) targeted loading, smoking casings & muzzle flash choreography, active Boss traits & Overtime/dry-click counter-attacks, and wired 3-Card Relic Draft + Victory/Endless/Defeat. | M6 | r2_survey |
+| 24 | `F-R2-05` Scheme 3 (`jackpot-td`) R2 Real-Time Loop, Visual Lane & Tactical Hold Overhaul | Positioned Canyon Siege Lane with marching SVG enemies that take real individual damage & die for Gold (fixing `Math.max(1, ...)` bug), continuous turret auto-fire (`shotsPerSec`), clickable Pedestal `🔒 HOLD` (`up to 2` towers), Overheated Scrap Pull penalty when `gold < pullCost`, distinct Freeze/Laser/Nuke visuals, and non-destructive 60fps `syncRealtimeDOM(state)`. | M7 | r2_survey |
+| 25 | `F-R2-06` Scheme 4 (`sigil-pachinko`) & Scheme 5 (`abyssal-grid`) R2 Physics, Grid & Tactical Overhaul | Scheme 4: Styled `2D` 24-peg arena, deterministic 60fps pinball bounce & mid-air fusion trajectory replayed smoothly in browser (fixing `0ms` `step(500)` teleport while keeping `crucible-hit` instant), Launch Aim control (`◀/居中/▶`), and `35G` Sigil Peg Upgrade. Scheme 5: Fixed `4×4` `.abyssal-matrix-grid` tactical board, clickable cell `🔒 HOLD` toggling, fixed non-lethal `[R]` wave-clear exploit, SVG Bingo sightlines, and wave-transition Commander Ascension merge. | M7 | r2_survey |
+| 26 | `F-R2-07` Unified 60fps Browser `requestAnimationFrame` Runtime (`ArcadeHubController`) | Activate real-browser `rAF` loop in `src/main.js` (guarded for `SlotboundE2EMockBrowser`, `realtimePaused`, and `_manualSimMode` on programmatic `stepSimulation`/`forceGridOrCylinder`) driving `vfx.step(dt)` across all schemes and `activeEngine.step(dt)` + `syncRealtimeDOM()` on real-time/cascade schemes, plus collapsible Sandbox drawer. | M7 | r2_survey |
+| 27 | `F-R2-08` Tier 6 Live Browser Visual/Gameplay E2E Suite & GitHub Pages (`origin main`) Deployment | Add `Tier 6` (`tests/e2e/tier6-visual-gameplay-polish.test.js`, `>=30` live Headless Chromium & integration checks for `100vh` fit, non-zero `#vfx-canvas` pixels, autonomous real-time TD march, radial/2D/4×4 geometry, Relic Draft, exploit fixes & zero 404s), clean untracked `Luca5702/`, pass 100% unit + Tiers 1–6 E2E + Whole-Project Audit, and commit & push to `origin main` updating `https://luca5702.github.io/slotbound-dopamine-lab/`. | M8 | r2_survey |
 
 ---
 
@@ -131,12 +142,16 @@ Every Survey feature is assigned a milestone (none unassigned).
 
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| 1 | **M1: GDD Suite, Shared Core Engine, Procedural Web Audio & Base UI** | Create `package.json`, `scripts/serve.js`, all 6 comprehensive GDD files in `docs/gdd/00..05-*.md`, `README.md`, `src/core/*` (`PRNG.js`, `BigNumber.js`, `ScoreFormula.js`, `EconomyEngine.js`, `EventBus.js`, `FlowTracker.js`), `src/audio/SoundEngine.js`, `src/ui/*` (`VFXCanvas.js`, `HUDController.js`, `GDDViewer.js`), `src/styles/*`, and `tests/unit/core-and-gdd.test.js`. (`F-GDD-01`, `F-CORE-01..04`, `F-AUDIO-01`, `F-UI-01`) | none | DONE (`22 files, 23/23 unit tests PASS, Gate PASS`) |
-| 2 | **M2: Scheme 1 (《吞噬转轮》 Devour Reels) & Scheme 2 (《左轮地牢》 Revolver Dungeon)** | Implement `src/games/devour-reels/{config.js,DevourReelsEngine.js,DevourReelsView.js}`, `src/games/revolver-dungeon/{config.js,RevolverDungeonEngine.js,RevolverDungeonView.js}`, and comprehensive unit/integration tests `tests/unit/devour-reels.test.js` & `tests/unit/revolver-dungeon.test.js`. (`F-S1-01..03`, `F-S2-01..03`) | M1 | DONE (`8 files, 22/22 M2 unit tests PASS, 148/148 M1+M2 E2E tests PASS, Gate PASS`) |
-| 3 | **M3: Scheme 3 (《黄金矿工防线》 Jackpot TD), Schemes 4–5 Explorations & Unified Arcade Hub** | Implement `src/games/jackpot-td/*`, `src/games/sigil-pachinko/*`, `src/games/abyssal-grid/*`, `src/games/registry.js`, `src/main.js`, `index.html`, and unit/integration tests `tests/unit/jackpot-td.test.js` & `tests/unit/explorations-and-hub.test.js`. (`F-S3-01..03`, `F-S4-01`, `F-S5-01`, `F-HUB-01`) | M1, M2 | DONE (`14 files, 57/57 unit tests PASS, 220/220 E2E tests PASS, Gate PASS`) |
-| 4 | **M4: Final Milestone — Full E2E Test Suite Pass (Phase 1: Tiers 1–4) & Adversarial Coverage Hardening (Phase 2: Tier 5)** | Phase 1: Pass 100% of E2E tests in `TEST_READY.md` across Tiers 1–4 (`220/220 PASS`). Phase 2: White-box adversarial coverage hardening (`tests/unit/tier5-adversarial.test.js` + `tests/e2e/tier5-adversarial-hardening.test.js`, `72/72` unit tests PASS, `250/250` E2E tests PASS across Tiers 1–5). | M1, M2, M3, E2E Track | DONE (`72/72 unit + 250/250 E2E = 322/322 PASS, Whole-Project Forensic Audit CLEAN, Gate PASS`) |
+| 1 | **M1: GDD Suite, Shared Core Engine, Procedural Web Audio & Base UI** | Initial Round 1 core, audio, UI & GDD baseline (`F-GDD-01`, `F-CORE-01..04`, `F-AUDIO-01`, `F-UI-01`). | none | DONE (`R1 Gate PASS`) |
+| 2 | **M2: Scheme 1 (《吞噬转轮》 Devour Reels) & Scheme 2 (《左轮地牢》 Revolver Dungeon)** | Initial Round 1 Scheme 1 & Scheme 2 engines, views & unit tests (`F-S1-01..03`, `F-S2-01..03`). | M1 | DONE (`R1 Gate PASS`) |
+| 3 | **M3: Scheme 3 (《黄金矿工防线》 Jackpot TD), Schemes 4–5 Explorations & Unified Arcade Hub** | Initial Round 1 Schemes 3–5, Hub & unit tests (`F-S3-01..03`, `F-S4-01`, `F-S5-01`, `F-HUB-01`). | M1, M2 | DONE (`R1 Gate PASS`) |
+| 4 | **M4: Round 1 Final Milestone — Tiers 1–5 E2E Pass & Hardening** | Round 1 `72/72` unit + `250/250` Tiers 1–5 E2E baseline. | M1..M3, E2E R1 | DONE (`R1 Gate PASS`) |
+| 5 | **M5 (R2): Design System, `SpriteForge` SVG Art, HiDPI `VFXCanvas`, 5-Factor HUD, `RelicDraftBanner`, Master-Bus `SoundEngine` & Docs** | Overhaul `index.html`, `src/styles/{main.css,animations.css}`, `src/ui/{SpriteForge.js,VFXCanvas.js,HUDController.js,RelicDraftBanner.js,GDDViewer.js}`, `src/audio/SoundEngine.js`, `src/core/EconomyEngine.js`, `docs/gdd/*`, `README.md`, and `tests/unit/core-and-gdd.test.js`. (`F-R2-01`, `F-R2-02`) | none | DONE (`R2 Gate PASS`) |
+| 6 | **M6 (R2): Scheme 1 (`devour-reels`) & Scheme 2 (`revolver-dungeon`) Visual, Choreography & Gameplay Overhaul** | Overhaul `src/games/devour-reels/*`, `src/games/revolver-dungeon/*`, `tests/unit/devour-reels.test.js`, and `tests/unit/revolver-dungeon.test.js` with `SpriteForge` Bosses/icons, `<800ms` spin/devour/shot choreography, Gold-backed wheel/ammo shops, active Bile Purge & chamber targeting, Boss traits/counter-attacks, and 3-Card Relic Draft. (`F-R2-03`, `F-R2-04`) | M5 | DONE (`R2 Gate PASS`) |
+| 7 | **M7 (R2): Schemes 3–5 (`jackpot-td`, `sigil-pachinko`, `abyssal-grid`) & 60fps `ArcadeHubController` Overhaul** | Overhaul `src/games/jackpot-td/*`, `src/games/sigil-pachinko/*`, `src/games/abyssal-grid/*`, `src/main.js`, `src/games/registry.js`, `tests/unit/jackpot-td.test.js`, and `tests/unit/explorations-and-hub.test.js` with unified 60fps browser `rAF` loop, real-time TD auto-fire/minion kills/pedestal hold, 2D Pachinko bounce physics & aiming, `4×4` Matrix click-lock/ascension/exploit-fix, and 3-Card Relic Draft. (`F-R2-05`, `F-R2-06`, `F-R2-07`) | M5 | DONE (`R2 Gate PASS`) |
+| 8 | **M8 (R2): Final Milestone — Tiers 1–6 Full E2E Pass, Live Browser Visual Inspection, Adversarial Hardening & GitHub Pages Push (`origin main`)** | Pass 100% of Unit + Tiers 1–6 E2E suites (`TEST_READY.md`), inspect live Headless Chromium screenshots (`1440×900` & `390×844`), run Phase 2 Challenger -> Worker -> Reviewer + Whole-Project Forensic Audit loop, clean untracked `Luca5702/` (and `.gitignore`), commit & push to `origin main`, and verify live `https://luca5702.github.io/slotbound-dopamine-lab/`. (`F-R2-08`) | M5, M6, M7, E2E Track R2 | DONE (`R2 Gate PASS`) |
 
-*(Note: The **E2E Testing Track** (`a89ff988c2548a7f425ab9cbc8f35c04` — `DONE`, Gate `PASS`, `TEST_READY.md` published with `220` E2E test cases across Tiers 1–4) ran in parallel with M1–M3, designing `TEST_INFRA.md`, building the opaque-box E2E test harness in `tests/e2e/` and `scripts/verify-e2e.js` covering Tiers 1–4 for all 19 features, and publishing `TEST_READY.md`.)*
+*(Note: **E2E Testing Track R2** (`sub_orch_r2_e2e_gen1` `8c620ac610a60c782d3d34fce977a934` — **`DONE (R2 Gate PASS)`**) completed `TEST_INFRA.md`, `tests/e2e/helpers/e2e-harness.js`, `scripts/verify-e2e.js`, `tests/e2e/tier6-visual-gameplay-polish.test.js` (`35` live visual/choreography/real-time/geometry E2E tests `T6-01`..`T6-35`), and published updated `TEST_READY.md` (`285` total cases across Tiers 1–6).)*
 
 ---
 
@@ -286,3 +301,54 @@ window.__SLOTBOUND__ = window.__SLOTBOUND_TEST__ = {
   - `data-testid="gdd-viewer-panel"`, `data-testid="gdd-doc-selector"`, `data-testid="gdd-content-body"`
   - `data-testid="audio-mute-toggle"`, `data-testid="audio-test-clunk"`, `data-testid="audio-test-devour"`, `data-testid="audio-test-chime"`, `data-testid="audio-last-event"`
   - `data-testid="sandbox-toolbar"`, `data-testid="sandbox-seed-input"`, `data-testid="sandbox-trigger-jackpot"`
+
+### 6. Round 2 Visual, Choreography, Progression & Test-Safety Contracts
+
+#### 6.1 `src/ui/SpriteForge.js` (Zero-Emoji Procedural Multi-Layered SVG Artwork)
+```js
+export function renderSprite(id, options = {})
+// options: { size = 48, tier = 1, className = '' }
+// Returns inline '<svg viewBox="0 0 64 64" ...>...</svg>' covering:
+// - Scheme 1: 'goblin', 'chest', 'powder_keg', 'curse_skull', 'iron_knight', 'fireball', 'digestive_herb', 'hero_berserker', 'abyss_apostle', 'abyssal_maw'
+// - Scheme 2: 'empty', 'lead_bullet', 'vampire_bullet', 'scatter_bullet', 'parasite_bullet', 'powder_charge', 'fuse_cord', 'heavy_hammer', 'demon_bullet', 'revolver_spindle'
+// - Scheme 3: 'miner_pick', 'gold_nugget', 'cryo_prism', 'tesla_coil', 'prism_laser', 'nuke_core', 'gob_runner', 'shield_bearer', 'tunnel_berserker', 'siege_dreadnought'
+// - Scheme 4: all orb IDs, 'peg_ember' / 'ember', 'peg_volt' / 'volt', 'peg_gold' / 'gold', 'peg_glutton' / 'glutton', 'crucible' (plus deterministic hash fallback for any unknown ID)
+// - Scheme 5: 'skeleton_pawn', 'imp_scout', 'mimic_chest', 'cursed_urn', 'abyssal_knight', 'blood_archmage', 'soul_cannon', 'void_reaper', 'golden_overlord' (plus deterministic fallback)
+// - Relics: 'greed_ledger', 'gluttony_jaw', 'acid_reflux_core', 'pyro_catalyst', 'russian_roulette_coin', 'compound_vault', 'chronos_lever', 'abyssal_crown'
+
+export function renderBossPortrait(boss = {}, options = {})
+// options: { wave = 1, schemeId = 'devour-reels', size = 96 }
+// Returns multi-layered illustrated '<svg viewBox="0 0 120 120" data-testid="boss-portrait-svg" ...>...</svg>'
+```
+- **STRICT `MockElement` SVG Rules (`tests/e2e/helpers/e2e-harness.js:931`)**:
+  1. Every childless SVG element (`<path ... />`, `<circle ... />`, `<rect ... />`, `<polygon ... />`, `<line ... />`, `<ellipse ... />`, `<polyline ... />`, `<stop ... />`) **MUST** end with explicit `/>` or a matching closing tag.
+  2. Never render `<text>` inside `<svg>` (so `MockElement.textContent` on cards stays clean).
+  3. Never place a literal `>` character inside any HTML/SVG attribute value (use `→` or `≥` or `&gt;`).
+
+#### 6.2 `src/ui/RelicDraftBanner.js` & Non-Blocking Post-Wave Progression Contract
+```js
+export function renderRelicDraftHTML(state, options = {})
+// Renders non-blocking HTML when state has:
+// - state.pendingRelicDraft (array of up to 3 relic objects { id, name, description }): renders data-testid="relic-draft-banner" with [data-testid="relic-pick-0..2"][data-relic-id="..."] and compound interest summary
+// - state.victory === true && !state.endlessMode: renders data-testid="run-victory-banner" with [data-testid="btn-endless-mode"] and [data-testid="btn-new-run"]
+// - state.gameOver === true (playerHp <= 0 on Overtime/backfire/leak): renders data-testid="run-defeat-banner" with [data-testid="btn-retry-run"]
+
+export function bindRelicDraftEvents(containerEl, callbacks = {})
+// callbacks: { onPickRelic(relicId), onEnterEndless(), onResetRun() }
+```
+- **Non-Blocking Auto-Advance Rule**: Primary action buttons (`btn-spin-devour`, `btn-spin-fire`, `btn-pull-lever`, `btn-drop-orbs`, `btn-matrix-spin`) MUST remain enabled even when `pendingRelicDraft` is visible. If `engine.performPrimaryAction()` is called while `pendingRelicDraft` is non-empty, the engine automatically applies `pendingRelicDraft[0]` (`applyRelic`) and clears `pendingRelicDraft` before running the spin, so automated multi-wave E2E loops (`T4-02..08`, `T5-28..30`) never block. Engines also handle `performSecondaryAction({ action: 'pick_relic', relicId })` and `performSecondaryAction({ action: 'enter_endless' })`.
+
+#### 6.3 HiDPI `VFXCanvas`, 5-Factor `HUDController`, & Spy-Safe `SoundEngine`
+- **`VFXCanvas.js`**: Adds `syncDimensions()` and `resolveAnchor(elOrSelector, fallbackX, fallbackY)` for real DOM-to-Canvas coordinate mapping. All Canvas2D methods beyond `{ clearRect, save, restore, translate, beginPath, moveTo, lineTo, stroke, arc, fill, fillText }` **MUST** use optional chaining (`typeof ctx.createRadialGradient === 'function'`, `ctx.quadraticCurveTo?.(...)`, `ctx.closePath?.()`) with fallback to `moveTo`/`lineTo`/`arc`/`stroke`/`fill` so `T5-06` passes 100%.
+- **`HUDController.js`**: Displays all 5 multiplicative factors (`hud-base-chips`, `hud-line-mult`, `hud-devour-stacks`, `hud-chain-mult`, `hud-greed-mult`, `hud-total-damage` carrying `data-intensity-tier="${0..4}"`), owned Relic badges (`hud-relic-strip`), and localized Chinese synergy titles (never raw snake_case IDs like `fireball_powder_keg`).
+- **`SoundEngine.js`**: Routes synth voices through a master `DynamicsCompressorNode` (feature-detected via `typeof ctx.createDynamicsCompressor === 'function'` so `T5-05` `SpyAudioContext` never throws), layers procedural white/pink noise buffers on clacks/crunches/gunshots/explosions, and micro-arpeggiates rapid `playComboChime` Web Audio `startTime`s by `55ms` while still recording exact synchronous `window.__AUDIO_LOG__` entries with unchanged `frequencyHz` formulas.
+
+#### 6.4 Live Browser 60fps `requestAnimationFrame` Loop & Geometry Requirements
+- **`ArcadeHubController` (`src/main.js`)**: Starts a unified `requestAnimationFrame` loop ONLY in real browsers (`typeof win?.requestAnimationFrame === 'function' && win?.navigator?.userAgent !== 'SlotboundE2EMockBrowser'`), calling `vfx.step(dt)` every frame across all schemes and stepping `activeEngine.step(dt)` + `activeView.syncRealtimeDOM?.(state)` when `!realtimePaused && !_manualSimMode` on real-time/cascade schemes (`jackpot-td`, active `sigil-pachinko` cascade). Calling `stepSimulation()` or `forceGridOrCylinder()` sets `_manualSimMode = true` (cleared on `resumeRealtimeLoop()`, `switchScheme()`, or trusted user pointer/key events `e.isTrusted === true`) to prevent `T5-28` timing races.
+- **Viewport & Spatial Geometry (`1440×900` Desktop & `390×844` Mobile)**:
+  - All 5 schemes render an on-stage `[data-testid="boss-arena-card"]` with `renderBossPortrait(...)` and dual-layer chunking HP bar, fitting cleanly within desktop `1440×900` (`scrollWidth <= clientWidth` on both desktop and mobile; primary CTA button `100%` visible above `y = 900` on desktop).
+  - Scheme 2 `[data-testid="chamber-0..5"]` arranged radially at `60°` intervals around a circular drum (`6` distinct `(x, y)` coordinates, not a `2×3` rectangle).
+  - Scheme 3 `.td-pedestal-card` preserves `.pedestal-star-{1..3}`, renders positioned `.td-enemy-token` SVG monsters marching inside `.td-battlefield-lane`, and updates via `syncRealtimeDOM(state)` without destroying `btn-pull-lever` mid-click.
+  - Scheme 4 `.pachinko-arena-board` renders `24` positioned `.pachinko-peg` SVGs across 4 staggered rows + 5 horizontal `.pachinko-crucible` slots (preserving `.crucible-hit` immediately upon `performPrimaryAction`), animating falling `.pachinko-orb` trajectories over `~650ms` in browser instead of synchronous `step(500)`.
+  - Scheme 5 `.abyssal-matrix-grid` renders a true `4×4` CSS Grid (`4` distinct X columns × `4` distinct Y rows), preserves `.matrix-cell-locked`, binds click-to-lock on `matrix-cell-0..15`, and fixes non-lethal `[R]` so `settleWaveClear` only runs when `enemyHp <= 0`.
+

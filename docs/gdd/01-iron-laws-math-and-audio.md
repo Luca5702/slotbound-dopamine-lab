@@ -133,3 +133,24 @@ $$\text{TotalDamage} = \left\lfloor \text{BasePoints} \times \text{LineMultiplie
 | `compound_vault` | **复利金库 (Compound Vault)** | `epic` | 复利利率额外 `+10%`，立即获得 `+100 Gold`，贪婪倍率 `×1.30` | 方案三实时憋利息流 |
 | `chronos_lever` | **时空拉杆 (Chronos Lever)** | `epic` | 每波最大拉杆次数上限 `+1`（大幅提高省下拉杆数 $U$ 的复利指数上限！） | 全方案极限秒杀流 |
 | `abyssal_crown` | **深渊暴君王冠 (Abyssal Crown)** | `mythic` | 全局永久贪婪倍率直接乘以 `×1.75` | 后期破亿冲分核心 |
+
+---
+
+## 5. 第二轮视听编排与无尽膨胀升级规范 (`Round 2 Choreography, Master Audio Bus & Endless Math`)
+
+### 5.1 `< 800ms` 四拍微秒级战斗视觉编排 (`4-Beat Sub-Second Combat Choreography`)
+在坚守 `< 1000ms` 零操作结算硬上限与同步状态机契约的前提下，渲染层通过 CSS 关键帧 (`src/styles/animations.css`) 与 HiDPI `VFXCanvas.js` 将单次拉杆拆解为肉眼清晰可读的四拍节奏：
+1. **第一拍 (`0–220ms`) · 滚轮急停与错峰机械落锁**：各列按 `60ms` 错峰播放 `.is-reel-stopping` 弹簧回弹与 `playReelClack` 黄铜棘轮声；
+2. **第二拍 (`220–500ms`) · 捕食扑咬与二次贝塞尔吞噬弧**：捕食者向相邻食材突进 (`.is-predator-lunging`)，`VFXCanvas` 沿真实 DOM 坐标绘制二次贝塞尔曲线吸入流光与咬合冲击波环；
+3. **第三拍 (`500–720ms`) · 彗尾齐射与首领顿帧受击 (`Hit-Stop`)**：弹幕拖带渐变彗尾轰向首领立绘 (`boss-portrait-svg`)，触发高光受击闪白 (`.is-hit-flash`) 与双层血条残影缓降 (`.boss-hp-burn-fill`)；
+4. **第四拍 (`720–800ms`) · 五乘区记分牌翻牌跳字**：`HUDController` 同步点亮 `基础 × 连线 × 吞噬 × 连锁 × 贪婪 = 总伤` 五乘区筹码盒并弹出描边暴击飘字。
+
+### 5.2 主母线防爆音动态压缩与 `55ms` 微琶音调度 (`Master Dynamics Bus & 55ms Micro-Arpeggiator`)
+* **主母线链路**：所有合成声部统一接入 `MasterGain -> WaveShaper (tanh 软削波器) -> DynamicsCompressorNode (-10dB, 6:1) -> destination`，配合缓存复用的程序化白噪声/粉红噪声瞬态采样，彻底消除多段连锁爆炸时的数字削波杂音。
+* **`55ms` 半音阶微琶音器**：当同一结算帧同步触发多次 `playComboChime(step)` 或 `playDevourCrunch` 时，`SoundEngine` 在保持 `window.__AUDIO_LOG__` 同步写入的同时，将底层 Web Audio 振荡器按 `55ms` 步进排入晶莹剔透的十二平均律上行琶音队列，并新增遗物拾取 (`playRelicPick`)、通关凯歌 (`playVictoryFanfare`) 与败北低音号角 (`playDefeatStinger`)。
+
+### 5.3 Wave 9+ 无尽冲分模式指数血量公式 (`Endless Mode Scaling`)
+击败第 8 波终极首领后，玩家可在胜利横幅中点击开启无尽模式 (`enterEndlessMode`)，后续波次首领血量按 `6.5` 倍指数攀升：
+
+$$\text{EndlessBossHP}(w) = \left\lfloor \text{BaseWave8HP} \times 6.5^{(w - 8)} \right\rfloor \quad (w \ge 9)$$
+

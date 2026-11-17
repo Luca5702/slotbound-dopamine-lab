@@ -1,6 +1,6 @@
 /**
  * Unit & Integration Tests for Scheme 3: 《黄金矿工防线》(Jackpot TD)
- * Features covered: `F-S3-01`, `F-S3-02`, `F-S3-03`
+ * Features covered: `F-S3-01`, `F-S3-02`, `F-S3-03`, `F-R2-02`, `F-R2-05`
  */
 
 import test from 'node:test';
@@ -13,6 +13,7 @@ import {
   YAHTZEE_HANDS,
   ENEMIES,
   BOSSES,
+  getBossForWave,
 } from '../../src/games/jackpot-td/config.js';
 import {
   JackpotTDEngine,
@@ -24,7 +25,7 @@ import { HUDController } from '../../src/ui/HUDController.js';
 import { VFXCanvas } from '../../src/ui/VFXCanvas.js';
 import { installMockBrowserEnv } from '../e2e/helpers/e2e-harness.js';
 
-test('F-S3-01: config.js defines all 6 canonical tower symbols, 4 enemy archetypes, and 8 waves', () => {
+test('F-S3-01: config.js defines all 6 canonical tower symbols, 4 enemy archetypes, and 8+ waves', () => {
   assert.equal(TOWERS.length, 6);
   const expectedIds = [
     'miner_pick',
@@ -43,6 +44,7 @@ test('F-S3-01: config.js defines all 6 canonical tower symbols, 4 enemy archetyp
   assert.equal(BOSSES.length, 8);
   assert.equal(BOSSES[0].hp, 120);
   assert.equal(BOSSES[7].hp, 85000000);
+  assert.ok(getBossForWave(9).maxHp > 85000000, 'Endless Wave 9 must scale above Wave 8 85M HP');
 });
 
 test('F-S3-01: JackpotTDEngine initializes 1x5 slot barrier, Wave 1 enemies, and advances real-time march', () => {
@@ -67,7 +69,7 @@ test('F-S3-01: JackpotTDEngine initializes 1x5 slot barrier, Wave 1 enemies, and
   assert.equal(st2.closestEnemyProgress, st1.closestEnemyProgress);
 });
 
-test('F-S3-01: Enemy breaching bottom defense line reduces Base HP and 0-Gold emergency pull remains safe', () => {
+test('F-S3-01 / F-R2-05: Enemy breaching bottom defense line reduces Base HP, fatal breach sets gameOver, and 0-Gold Overheated Scrap Pull applies penalty safely', () => {
   const engine = new JackpotTDEngine({ seed: 102 });
   engine.forceState({ closestEnemyProgress: 0.98, gold: 0 });
 
@@ -77,10 +79,12 @@ test('F-S3-01: Enemy breaching bottom defense line reduces Base HP and 0-Gold em
   const stAfterBreach = engine.getState();
   assert.ok(stAfterBreach.playerHp < 100 && stAfterBreach.playerHp >= 0);
 
-  // Pull lever at 0 Gold -> emergency pull without negative gold
-  engine.forceState({ gold: 0 });
+  // Pull lever at 0 Gold -> Overheated Scrap Pull without negative gold
+  engine.forceState({ gold: 0, playerHp: 50 });
   const stAfterPull = engine.performPrimaryAction();
   assert.ok(stAfterPull.gold >= 0);
+  assert.equal(stAfterPull.overheatedPull, true);
+  assert.ok(stAfterPull.playerHp < 50);
   assert.equal(stAfterPull.pedestals.length, 5);
   assert.ok(stAfterPull.lastTurnBreakdown.totalDamage > 0);
 });
@@ -190,7 +194,7 @@ test('F-S3-03: Real-time +20% compound Gold interest, Greed Streak multiplier & 
   assert.equal(engine.getState().isRedZoneCritical, true);
 });
 
-test('F-S3-01..03: JackpotTDView renders all 11 required data-testid anchors and handles Space/click', () => {
+test('F-R2-05: Pedestal HOLD (max 2 towers), continuous turret auto-fire DPS, mortal minion killGold & syncRealtimeDOM', () => {
   const env = installMockBrowserEnv();
   const sound = new SoundEngine();
   const hudContainer = env.createContainer();
@@ -198,12 +202,14 @@ test('F-S3-01..03: JackpotTDView renders all 11 required data-testid anchors and
   const canvasEl = env.document.createElement('canvas');
   const vfx = new VFXCanvas(canvasEl);
 
-  const engine = new JackpotTDEngine({ seed: 404, sound });
+  const engine = new JackpotTDEngine({ seed: 404, wave: 3, sound });
   const container = env.createContainer();
   const view = new JackpotTDView(engine, { sound, hud, vfx });
   view.mount(container, { engine, sound, hud, vfx });
 
   const requiredIds = [
+    'boss-arena-card',
+    'boss-portrait-svg',
     'td-lane-canvas',
     'td-slot-bar',
     'td-pedestal-0',
@@ -220,6 +226,19 @@ test('F-S3-01..03: JackpotTDView renders all 11 required data-testid anchors and
   for (const id of requiredIds) {
     assert.ok(container.querySelector(`[data-testid="${id}"]`), `Expected [data-testid="${id}"]`);
   }
+
+  // Click pedestals 0, 1, 2 -> max 2 held
+  container.querySelector('[data-testid="td-pedestal-0"]').click();
+  container.querySelector('[data-testid="td-pedestal-1"]').click();
+  container.querySelector('[data-testid="td-pedestal-2"]').click();
+  assert.equal(engine.getState().lockedPedestals.length, 2);
+
+  // Verify syncRealtimeDOM preserves btn-pull-lever DOM node identity
+  const btnRefBefore = container.querySelector('[data-testid="btn-pull-lever"]');
+  const stStepped = engine.step(400);
+  view.syncRealtimeDOM(stStepped);
+  const btnRefAfter = container.querySelector('[data-testid="btn-pull-lever"]');
+  assert.equal(btnRefBefore, btnRefAfter);
 
   container.querySelector('[data-testid="btn-pull-lever"]').click();
   assert.ok(engine.getState().lastTurnBreakdown.totalDamage > 0);

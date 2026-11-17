@@ -268,6 +268,57 @@ export const STOMACH_SYNERGIES = Object.freeze([
   }),
 ]);
 
+export const WHEEL_MOD_COSTS = Object.freeze({
+  boost: 25,
+  banish: 20,
+  preset: 35,
+});
+
+export const MAW_WORKSHOP_ITEMS = Object.freeze([
+  Object.freeze({
+    id: 'buy_herb',
+    action: 'buy_herb',
+    testid: 'btn-maw-herb',
+    zhName: '吞服圣果',
+    label: '吞服圣果 30G (-35消化/+15攻)',
+    cost: 30,
+    indigestionDelta: -35,
+    attackBonus: 15,
+    armorBonus: 0,
+    levelBonus: 0,
+    spriteId: 'digestive_herb',
+    tier: 2,
+  }),
+  Object.freeze({
+    id: 'buy_armor',
+    action: 'buy_armor',
+    testid: 'btn-maw-armor',
+    zhName: '锻造重甲',
+    label: '锻造重甲 40G (+60巨口护甲)',
+    cost: 40,
+    indigestionDelta: 0,
+    attackBonus: 10,
+    armorBonus: 60,
+    levelBonus: 0,
+    spriteId: 'iron_knight',
+    tier: 2,
+  }),
+  Object.freeze({
+    id: 'temper_maw',
+    action: 'temper_maw',
+    testid: 'btn-maw-temper',
+    zhName: '淬炼巨口',
+    label: '淬炼巨口 60G (Lv+1/+40攻/+30甲)',
+    cost: 60,
+    indigestionDelta: -15,
+    attackBonus: 40,
+    armorBonus: 30,
+    levelBonus: 1,
+    spriteId: 'abyss_apostle',
+    tier: 4,
+  }),
+]);
+
 /**
  * 8 Escalating Siege Bosses (`120 HP` to `85,000,000 HP`) (`F-S1-03`).
  */
@@ -276,81 +327,121 @@ export const BOSSES = Object.freeze([
     wave: 1,
     id: 'battering_ram',
     name: '攻城木槌车 (Battering Ram Cart)',
+    zhName: '攻城木槌车',
     hp: 120,
     maxHp: 120,
     enemyMaxHp: 120,
     attack: 10,
     trait: '基础靶机，适合测试首轮吞噬',
+    traitCode: 'tutorial_target',
+    indigestionHazard: 0,
+    armorShred: 0,
+    goldMultiplier: 1,
   }),
   Object.freeze({
     wave: 2,
     id: 'iron_phalanx',
     name: '黑铁盾墙阵 (Iron Phalanx)',
+    zhName: '黑铁盾墙阵',
     hp: 650,
     maxHp: 650,
     enemyMaxHp: 650,
     attack: 15,
-    trait: '高甲推进',
+    trait: '高甲推进 · 每轮磨损 10 点巨口护甲',
+    traitCode: 'armor_pierce',
+    indigestionHazard: 0,
+    armorShred: 10,
+    goldMultiplier: 1,
   }),
   Object.freeze({
     wave: 3,
     id: 'alchemical_trebuchet',
     name: '炼金投石巨兽 (Alchemical Trebuchet)',
+    zhName: '炼金投石巨兽',
     hp: 3800,
     maxHp: 3800,
     enemyMaxHp: 3800,
     attack: 22,
-    trait: '投掷诅咒骨颅增加消化不良',
+    trait: '投掷诅咒骨颅增加消化不良 (+12)',
+    traitCode: 'curse_hazard',
+    indigestionHazard: 12,
+    armorShred: 0,
+    goldMultiplier: 1,
   }),
   Object.freeze({
     wave: 4,
     id: 'steam_siege_tower',
     name: '蒸汽攻城塔 (Steam Siege Tower)',
+    zhName: '蒸汽攻城塔',
     hp: 25000,
     maxHp: 25000,
     enemyMaxHp: 25000,
     attack: 30,
-    trait: '重装护盾',
+    trait: '重装护盾 · 撞击削减 15 点巨口护甲',
+    traitCode: 'heavy_shield',
+    indigestionHazard: 0,
+    armorShred: 15,
+    goldMultiplier: 1,
   }),
   Object.freeze({
     wave: 5,
     id: 'abyssal_siege_drake',
     name: '深渊破城龙 (Abyssal Siege Drake)',
+    zhName: '深渊破城龙',
     hp: 180000,
     maxHp: 180000,
     enemyMaxHp: 180000,
     attack: 42,
-    trait: '烈焰吐息',
+    trait: '烈焰吐息 · 灼烧胃袋 (+8 消化不良)',
+    traitCode: 'flame_breath',
+    indigestionHazard: 8,
+    armorShred: 15,
+    goldMultiplier: 1,
   }),
   Object.freeze({
     wave: 6,
     id: 'golden_titan_colossus',
     name: '黄金泰坦巨像 (Golden Titan Colossus)',
+    zhName: '黄金泰坦巨像',
     hp: 1500000,
     maxHp: 1500000,
     enemyMaxHp: 1500000,
     attack: 55,
-    trait: '击破奖励双倍金币',
+    trait: '击破奖励双倍金币 (+80G 泰坦金库)',
+    traitCode: 'double_gold',
+    indigestionHazard: 0,
+    armorShred: 0,
+    goldMultiplier: 2,
   }),
   Object.freeze({
     wave: 7,
     id: 'necro_bone_citadel',
     name: '冥界骸骨要塞 (Necro Bone Citadel)',
+    zhName: '冥界骸骨要塞',
     hp: 12000000,
     maxHp: 12000000,
     enemyMaxHp: 12000000,
     attack: 70,
-    trait: '千万级骸骨壁垒',
+    trait: '千万级骸骨壁垒 · 死灵瘴气 (+10 消化不良)',
+    traitCode: 'bone_fortress',
+    indigestionHazard: 10,
+    armorShred: 20,
+    goldMultiplier: 1,
   }),
   Object.freeze({
     wave: 8,
     id: 'omega_siege_dreadnought',
     name: '神罚天穹母舰·奥米茄 (Omega Siege Dreadnought)',
+    zhName: '神罚天穹母舰·奥米茄',
     hp: 85000000,
     maxHp: 85000000,
     enemyMaxHp: 85000000,
     attack: 95,
-    trait: '8500万终极攻城 BOSS',
+    trait: '8500万终极攻城 BOSS · 歼星威压',
+    traitCode: 'omega_annihilation',
+    indigestionHazard: 12,
+    armorShred: 25,
+    goldMultiplier: 2,
   }),
 ]);
 
@@ -359,11 +450,31 @@ export const WAVES = BOSSES;
 
 /**
  * Returns the Siege Boss configuration for a 1-indexed wave (`1..8+`).
+ * Supports Wave 9+ Endless Mode exponential scaling (`85,000,000 * 6.5^(wave - 8)`).
  * @param {number} [wave=1]
  */
 export function getBossForWave(wave = 1) {
-  const idx = Math.max(0, Math.min(BOSSES.length - 1, Math.floor(Number(wave) || 1) - 1));
-  return { ...BOSSES[idx] };
+  const w = Math.max(1, Math.floor(Number(wave) || 1));
+  if (w <= BOSSES.length) {
+    return { ...BOSSES[w - 1] };
+  }
+  const base8 = BOSSES[BOSSES.length - 1];
+  const endlessHp = Math.min(
+    Number.MAX_SAFE_INTEGER,
+    Math.floor(base8.maxHp * Math.pow(6.5, w - BOSSES.length))
+  );
+  return {
+    ...base8,
+    wave: w,
+    id: 'omega_siege_dreadnought',
+    name: `无尽神罚母舰 W${w} (Endless Dreadnought)`,
+    zhName: `无尽神罚母舰 W${w}`,
+    hp: endlessHp,
+    maxHp: endlessHp,
+    enemyMaxHp: endlessHp,
+    attack: base8.attack + (w - BOSSES.length) * 20,
+    trait: `无尽冲分模式 W${w} · 指数级生命膨胀`,
+  };
 }
 
 export default {
@@ -375,6 +486,8 @@ export default {
   ADJACENCY_MAP,
   DEFAULT_WHEEL_WEIGHTS,
   WHEEL_PRESETS,
+  WHEEL_MOD_COSTS,
+  MAW_WORKSHOP_ITEMS,
   STOMACH_SYNERGIES,
   BOSSES,
   SIEGE_BOSSES,

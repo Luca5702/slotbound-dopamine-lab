@@ -111,3 +111,17 @@
 | `gdd-viewer-panel` / `gdd-doc-selector` / `gdd-content-body` | 内置 GDD 阅读器组件 | 支持实时切换并渲染 `docs/gdd/00..05-*.md` 全部 6 份设计文档 |
 | `audio-mute-toggle` / `audio-test-clunk` / `audio-test-devour` / `audio-test-chime` / `audio-last-event` | 音效实验室交互组件 | 实时测试停轮卡顿声、吞噬咀嚼声、半音升调叮声并回显最新频率 |
 | `sandbox-toolbar` / `sandbox-seed-input` / `sandbox-trigger-jackpot` | 底部沙盒调试工具栏 | 支持注入确定性随机种子与一键触发当前方案终极连锁大奖 |
+
+---
+
+## 5. 第二轮弹道微操与推运战棋防卡死进化 (`Round 2 Alchemical Aiming & Commander Ascension`)
+
+### 5.1 方案四《咒印弹珠台》：三维发射偏角与咒印钉点石成金
+* **三档发射偏角控制 (`pachinko-aim-left` / `center` / `right`)**：释放炼金法球前可自由选择左倾（`-18°`）、垂直（`0°`）或右倾（`+18°`）入射角，瞄准高密度元素钉群；
+* **点击升级咒印钉 (`35G`)**：直接点击钉阵中的任意 `.pachinko-peg` 即可消耗 `35G` 将其永久点化为高倍 **黄金/暴食咒印钉**，配合 Canvas 2D 动态流光轨迹与坩埚溅射波纹放大半空吞噬收益。
+
+### 5.2 方案五《深渊矩阵》：手动锁格、斩杀结余铁律与统帅升阶合体
+* **手动切换统帅锁格 (`Click-to-Toggle HOLD`)**：点击任意非空 `matrix-cell-0..15` 可手动锁定关键战线支点或解锁冗余棋子腾出十字吞噬口粮位，矩阵上层叠加 SVG 激光瞄准线实时高亮全部已激活的横/竖/斜 Bingo 战线；
+* **斩杀结余存息铁律**：提前按下 `[立即结算开火 (R)]` 时，唯有本轮齐射真正击破当前波次首领方可兑现 $1.25^U$ 省杆复利与 $1.35^U$ 贪婪倍率，杜绝无伤刷钱漏洞；
+* **统帅升阶合体 (`Commander Ascension Merge`)**：当 `4×4` 全部 16 格均被锁定统帅填满时，继续重摇会自动将低阶统帅两两融合晋升并腾出新口粮槽位，保证推运引擎永不僵死！
+

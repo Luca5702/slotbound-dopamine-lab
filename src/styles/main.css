@@ -1,21 +1,46 @@
+/* ==========================================================================
+   SLOTBOUND MINIMALIST DOPAMINE LAB — OBSIDIAN, BRUSHED BRASS & CRIMSON FELT
+   Complete 100vh Casino-Dungeon Design System Across All 5 Game Schemes
+   ========================================================================== */
+
 :root {
-  --bg-cabinet: #0b0914;
-  --bg-panel: #161224;
-  --bg-card: #1f1933;
-  --bg-slot-cell: #251e3e;
-  --border-subtle: rgba(155, 93, 229, 0.28);
-  --border-glow: rgba(0, 245, 212, 0.55);
-  --text-primary: #f8f7ff;
-  --text-secondary: #b8b2d1;
-  --accent-chips: #00bbf9;
-  --accent-mult: #ff3366;
-  --accent-devour: #9b5de5;
-  --accent-gold: #fee440;
-  --accent-laser: #00f5d4;
-  --accent-danger: #ff595e;
-  --accent-success: #06d6a0;
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  /* Core Cabinet & Felt Surfaces */
+  --bg-abyss: #090807;
+  --bg-cabinet: #110e0c;
+  --bg-panel: linear-gradient(180deg, #1d1713 0%, #120e0b 100%);
+  --bg-panel-solid: #17130f;
+  --bg-card: linear-gradient(180deg, #27201a 0%, #17130f 100%);
+  --bg-card-solid: #1f1914;
+  --bg-slot-well: radial-gradient(circle at 50% 34%, #1d1713 0%, #0d0a08 100%);
+  --bg-felt: radial-gradient(ellipse at 50% 30%, #1a2820 0%, #0f1713 66%, #090d0b 100%);
+  --bg-crimson-felt: radial-gradient(ellipse at 50% 26%, #2d1317 0%, #170b0d 66%, #0c0708 100%);
+
+  /* Brushed Brass & Metallic Bevel Trims */
+  --brass-rim: #c89b3c;
+  --brass-bright: #f3cf7a;
+  --brass-deep: #6b4c18;
+  --border-subtle: rgba(200, 155, 60, 0.32);
+  --border-bright: rgba(243, 207, 122, 0.64);
+  --shadow-inset-well: inset 0 3px 10px rgba(0, 0, 0, 0.78), inset 0 0 0 1px rgba(243, 207, 122, 0.1);
+  --shadow-card-raise: 0 6px 18px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(255, 240, 205, 0.1);
+
+  /* Typography & Semantic Dopamine Accents (Zero Purple!) */
+  --text-primary: #f7f1e5;
+  --text-secondary: #c2b39b;
+  --text-muted: #8f806b;
+
+  --accent-chips: #2ec4f1;
+  --accent-mult: #ef476f;
+  --accent-devour: #f77f00;
+  --accent-chain: #ff9f1c;
+  --accent-greed: #06d6a0;
+  --accent-gold: #ffd166;
+  --accent-jade: #06d6a0;
+  --accent-danger: #e63946;
+
+  --font-display: 'Cinzel', 'Chakra Petch', 'Noto Sans SC', serif;
+  --font-sans: 'Chakra Petch', 'Noto Sans SC', 'PingFang SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
 }
 
 *,
@@ -28,138 +53,394 @@ html,
 body {
   margin: 0;
   padding: 0;
+  width: 100%;
   min-height: 100vh;
-  background-color: var(--bg-cabinet);
+  background-color: var(--bg-abyss);
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(200, 155, 60, 0.08) 0%, transparent 58%),
+    radial-gradient(ellipse at 50% 100%, rgba(239, 71, 111, 0.06) 0%, transparent 55%);
   color: var(--text-primary);
   font-family: var(--font-sans);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Arcade Cabinet Shell & Top Navigation */
+/* Enforce Tabular Numerals Across All Counters, Odds & Multipliers */
+.hud-value,
+.box-number,
+.cell-pts,
+.prob-sym-weight,
+.chamber-stats,
+.roulette-risk-widget,
+.td-status-badge strong,
+.td-pedestal-stats,
+.spawner-orb-pts,
+.crucible-mult,
+.crucible-count,
+.matrix-cell-meta,
+.boss-hp-readout,
+.sandbox-seed-input {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   1. ARCADE CABINET SHELL & SLIM TOP NAVIGATION (`100vh` Desktop Center Stage)
+   ========================================================================== */
+
 .arcade-shell {
-  max-width: 1400px;
+  max-width: 1440px;
+  width: 100%;
   margin: 0 auto;
-  padding: 12px 18px 28px;
+  padding: 6px 14px 8px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 6px;
+}
+
+@media (min-width: 1025px) and (min-height: 760px) {
+  html,
+  body {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .arcade-shell {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+  }
+}
+
+.sandbox-drawer-checkbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .arcade-nav {
+  flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 5px 12px;
+  min-height: 44px;
   background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card-raise);
+}
+
+.arcade-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.brand-crest-svg {
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
+}
+
+.arcade-brand-text {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.arcade-brand h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  color: var(--brass-bright);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+}
+
+.arcade-subtitle {
+  font-size: 0.73rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
 }
 
 .arcade-nav-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 5px;
 }
 
+.nav-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-subtle);
+  margin: 0 2px;
+}
+
+/* Tactile Brass & Crimson Buttons */
 .btn-arcade,
 .nav-tab-btn,
 .btn-gdd-tab {
   appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   border: 1px solid var(--border-subtle);
+  border-bottom: 2px solid var(--brass-deep);
   background: var(--bg-card);
   color: var(--text-primary);
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 240, 200, 0.08);
+  transition: transform 0.1s ease, filter 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
 }
 
 .btn-arcade:hover,
 .nav-tab-btn:hover,
 .btn-gdd-tab:hover {
-  border-color: var(--accent-laser);
+  border-color: var(--brass-bright);
+  filter: brightness(1.08);
   transform: translateY(-1px);
+}
+
+.btn-arcade:active,
+.nav-tab-btn:active,
+.btn-gdd-tab:active {
+  transform: translateY(1px);
+}
+
+.btn-arcade:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.nav-tab-svg {
+  flex-shrink: 0;
 }
 
 .nav-tab-btn.active,
 .btn-gdd-tab.active {
-  background: linear-gradient(135deg, var(--accent-devour), #5e35b1);
-  border-color: var(--accent-gold);
-  color: #ffffff;
+  background: linear-gradient(180deg, #4b1d24 0%, #2c1015 100%);
+  border-color: var(--brass-bright);
+  border-bottom-color: var(--brass-rim);
+  color: var(--brass-bright);
+  box-shadow: 0 3px 12px rgba(239, 71, 111, 0.28), inset 0 1px 0 rgba(243, 207, 122, 0.3);
 }
 
-.btn-primary-action {
-  background: linear-gradient(135deg, var(--accent-mult), #ff7b00);
-  border-color: var(--accent-gold);
-  font-size: 1.08rem;
-  padding: 12px 24px;
-  box-shadow: 0 4px 18px rgba(255, 51, 102, 0.4);
+/* Primary 3D Casino Push-Plate CTA Button */
+.btn-primary-action,
+[data-testid="btn-spin-devour"],
+[data-testid="btn-spin-fire"],
+[data-testid="btn-pull-lever"],
+[data-testid="btn-drop-orbs"],
+[data-testid="btn-matrix-spin"] {
+  background: linear-gradient(180deg, #e03553 0%, #a81931 100%);
+  border: 1px solid var(--brass-bright);
+  border-bottom: 4px solid #5c0c1a;
+  color: #fffaf0;
+  font-size: 0.94rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 9px 20px;
+  border-radius: 9px;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 236, 195, 0.36);
 }
 
-/* Shared Balatro-Style Score & Economy HUD */
+.btn-primary-action:hover,
+[data-testid="btn-spin-devour"]:hover,
+[data-testid="btn-spin-fire"]:hover,
+[data-testid="btn-pull-lever"]:hover,
+[data-testid="btn-drop-orbs"]:hover,
+[data-testid="btn-matrix-spin"]:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  border-color: #ffe59e;
+}
+
+.btn-primary-action:active,
+[data-testid="btn-spin-devour"]:active,
+[data-testid="btn-spin-fire"]:active,
+[data-testid="btn-pull-lever"]:active,
+[data-testid="btn-drop-orbs"]:active,
+[data-testid="btn-matrix-spin"]:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+.btn-secondary-action {
+  background: linear-gradient(180deg, #352a1e 0%, #1e1710 100%);
+  border: 1px solid var(--brass-rim);
+  border-bottom: 3px solid #493411;
+  color: var(--brass-bright);
+  font-size: 0.88rem;
+  padding: 8px 16px;
+}
+
+/* ==========================================================================
+   2. SHARED 5-FACTOR BALATRO SCOREBOARD HUD (`HUDController.js`)
+   ========================================================================== */
+
+#hud-container {
+  flex-shrink: 0;
+}
+
 .hud-banner {
   background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 12px 16px;
+  border-radius: 10px;
+  padding: 6px 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
+  box-shadow: var(--shadow-card-raise);
+}
+
+.hud-banner[data-intensity-tier="3"],
+.hud-banner[data-intensity-tier="4"] {
+  border-color: var(--brass-bright);
+  box-shadow: 0 6px 20px rgba(247, 127, 0, 0.22), inset 0 1px 0 rgba(255, 230, 170, 0.2);
 }
 
 .hud-top-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(112px, 0.72fr) minmax(220px, 1.55fr) minmax(130px, 0.88fr) minmax(165px, 1.05fr) minmax(145px, 0.95fr);
+  gap: 6px;
+  align-items: stretch;
 }
 
 .hud-stat-card {
-  background: var(--bg-card);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 8px 12px;
+  background: rgba(16, 12, 10, 0.78);
+  border: 1px solid rgba(200, 155, 60, 0.2);
+  border-radius: 7px;
+  padding: 4px 9px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
+  min-width: 0;
 }
 
 .hud-label {
-  font-size: 0.75rem;
+  font-size: 0.66rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hud-value {
-  font-family: var(--font-mono);
-  font-size: 1.05rem;
+  font-size: 0.88rem;
+  font-weight: 800;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hud-enemy-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 6px;
 }
 
 .hud-hp-bar-track {
+  position: relative;
   width: 100%;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.5);
+  height: 7px;
+  background: #090706;
+  border: 1px solid rgba(243, 207, 122, 0.2);
   border-radius: 999px;
   overflow: hidden;
 }
 
-.hud-hp-bar-fill {
+.hud-hp-bar-ghost {
+  position: absolute;
+  inset: 0 auto 0 0;
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-danger), #ff9f1c);
-  transition: width 0.2s ease-out;
+  background: linear-gradient(90deg, #fff1c2, #ffd166);
+  transition: width 0.52s cubic-bezier(0.22, 1, 0.36, 1) 0.1s;
+  z-index: 1;
+}
+
+.hud-hp-bar-fill {
+  position: relative;
+  height: 100%;
+  background: linear-gradient(90deg, #b5172c, #ef476f, #f77f00);
+  transition: width 0.16s ease-out;
+  z-index: 2;
+}
+
+.hud-pulls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.hud-pull-pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.hud-pull-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #241d17;
+  border: 1px solid rgba(200, 155, 60, 0.35);
+}
+
+.hud-pull-pip.is-active {
+  background: var(--accent-jade);
+  border-color: #9bf6ff;
+  box-shadow: 0 0 6px rgba(6, 214, 160, 0.65);
+}
+
+.hud-relic-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.hud-relic-badge,
+.relic-medallion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #1b1510;
+  border: 1px solid var(--brass-rim);
+  flex-shrink: 0;
+}
+
+.hud-relic-empty {
+  font-size: 0.7rem;
+  color: var(--text-muted);
 }
 
 .hud-formula-bar {
@@ -167,82 +448,153 @@ body {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(200, 155, 60, 0.16);
 }
 
 .hud-formula-equation {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
+  min-width: 0;
 }
 
 .hud-chip-box {
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 3px 8px;
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
-  min-width: 110px;
-  font-family: var(--font-mono);
+  min-width: 78px;
+  background: #14100d;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .hud-box-chips {
-  background: rgba(0, 187, 249, 0.16);
-  border: 2px solid var(--accent-chips);
+  background: linear-gradient(180deg, rgba(46, 196, 241, 0.18), rgba(14, 28, 36, 0.85));
+  border: 1.5px solid var(--accent-chips);
 }
 
 .hud-box-mult {
-  background: rgba(255, 51, 102, 0.16);
-  border: 2px solid var(--accent-mult);
+  background: linear-gradient(180deg, rgba(239, 71, 111, 0.2), rgba(38, 13, 20, 0.85));
+  border: 1.5px solid var(--accent-mult);
 }
 
 .hud-box-devour {
-  background: rgba(155, 93, 229, 0.18);
-  border: 2px solid var(--accent-devour);
+  background: linear-gradient(180deg, rgba(247, 127, 0, 0.22), rgba(38, 21, 9, 0.88));
+  border: 1.5px solid var(--accent-devour);
+}
+
+.hud-box-chain {
+  background: linear-gradient(180deg, rgba(255, 159, 28, 0.2), rgba(38, 25, 10, 0.88));
+  border: 1.5px solid var(--accent-chain);
+}
+
+.hud-box-greed {
+  background: linear-gradient(180deg, rgba(6, 214, 160, 0.18), rgba(11, 32, 25, 0.88));
+  border: 1.5px solid var(--accent-greed);
 }
 
 .hud-box-total {
-  background: rgba(254, 228, 64, 0.16);
-  border: 2px solid var(--accent-gold);
+  min-width: 102px;
+  background: linear-gradient(180deg, rgba(255, 209, 102, 0.24), rgba(42, 30, 11, 0.92));
+  border: 1.5px solid var(--accent-gold);
+}
+
+.hud-box-total[data-intensity-tier="3"],
+.hud-box-total[data-intensity-tier="4"] {
+  border-color: #fff3b0;
+  box-shadow: 0 0 14px rgba(255, 209, 102, 0.35);
 }
 
 .box-caption {
-  font-size: 0.68rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .box-number {
-  font-size: 1.15rem;
+  font-size: 0.94rem;
   font-weight: 800;
+  color: #ffffff;
+  line-height: 1.15;
 }
 
 .formula-op {
-  font-size: 1.25rem;
+  font-size: 0.95rem;
   font-weight: 900;
-  color: var(--accent-gold);
+  color: var(--brass-bright);
+}
+
+.hud-combo-cluster {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
 }
 
 .hud-combo-banner {
-  padding: 8px 14px;
-  border-radius: 8px;
-  background: rgba(0, 245, 212, 0.12);
-  border: 1px solid var(--accent-laser);
-  color: var(--accent-laser);
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #2a1f14 0%, #18120c 100%);
+  border: 1px solid var(--brass-rim);
+  color: var(--brass-bright);
   font-weight: 800;
-  font-size: 0.92rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
 }
 
-/* Game Stage & 2D VFX Overlay Canvas */
+.hud-synergy-pill {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(247, 127, 0, 0.16);
+  border: 1px solid rgba(247, 127, 0, 0.48);
+  color: #ffd166;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   3. GAME STAGE, VFX OVERLAY, SHARED BOSS ARENA & RELIC BANNERS
+   ========================================================================== */
+
 .game-stage {
   position: relative;
-  min-height: 480px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  padding: 16px;
-  overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 460px;
+  background: var(--bg-felt);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: var(--shadow-inset-well), 0 8px 24px rgba(0, 0, 0, 0.55);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@media (min-width: 1025px) and (min-height: 760px) {
+  .game-stage {
+    min-height: 0;
+  }
+}
+
+.game-stage::-webkit-scrollbar {
+  width: 6px;
+}
+
+.game-stage::-webkit-scrollbar-thumb {
+  background: rgba(200, 155, 60, 0.35);
+  border-radius: 999px;
+}
+
+#scheme-mount {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  height: 100%;
 }
 
 .vfx-overlay-canvas {
@@ -251,93 +603,1484 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 20;
+  z-index: 25;
 }
 
-/* Scheme 1: 3x3 Devour Reels Grid & Probability Modder */
-.devour-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+/* Shared On-Stage Boss Arena Card (`[data-testid="boss-arena-card"]`) */
+[data-testid="boss-arena-card"],
+.boss-arena-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-crimson-felt);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card-raise);
+}
+
+.boss-portrait-frame {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border-radius: 10px;
+  background: radial-gradient(circle, #311519 0%, #12090b 100%);
+  border: 1.5px solid var(--brass-rim);
+}
+
+[data-testid="boss-portrait-svg"],
+.boss-portrait-svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.boss-info-col {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.boss-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.boss-name-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--brass-bright);
+}
+
+.boss-wave-pill,
+.boss-trait-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: rgba(200, 155, 60, 0.16);
+  border: 1px solid rgba(243, 207, 122, 0.36);
+  color: var(--accent-gold);
+}
+
+.boss-hp-dual-track {
+  position: relative;
+  width: 100%;
+  height: 10px;
+  background: #080606;
+  border: 1px solid rgba(243, 207, 122, 0.28);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.boss-hp-burn-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: linear-gradient(90deg, #fff5d1, #ffd166);
+  transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.1s;
+  z-index: 1;
+}
+
+.boss-hp-fill {
+  position: relative;
+  height: 100%;
+  background: linear-gradient(90deg, #9e1427, #ef476f, #f77f00);
+  transition: width 0.14s ease-out;
+  z-index: 2;
+}
+
+.boss-hp-readout {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Shared Non-Blocking Relic Draft, Victory & Defeat Banners (`RelicDraftBanner.js`) */
+.relic-overlay-banner,
+[data-testid="relic-draft-banner"],
+.relic-draft-banner,
+[data-testid="run-victory-banner"],
+.run-victory-banner,
+[data-testid="run-defeat-banner"],
+.run-defeat-banner {
+  grid-column: 1 / -1;
+  width: 100%;
+  position: relative;
+  z-index: 16;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(39, 29, 19, 0.97) 0%, rgba(19, 14, 10, 0.98) 100%);
+  border: 1.5px solid var(--brass-bright);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.72);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+[data-testid="run-defeat-banner"],
+.run-defeat-banner {
+  border-color: var(--accent-danger);
+  background: linear-gradient(180deg, rgba(46, 15, 20, 0.97) 0%, rgba(20, 8, 10, 0.98) 100%);
+}
+
+.relic-draft-header,
+.run-banner-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  max-width: 420px;
+  flex-wrap: wrap;
+}
+
+.relic-interest-summary {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.relic-flow-hint {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.relic-draft-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.relic-draft-card,
+.relic-pick-card,
+[data-testid^="relic-pick-"] {
+  appearance: none;
+  background: var(--bg-card);
+  border: 1px solid var(--brass-rim);
+  border-radius: 8px;
+  padding: 6px 9px;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.relic-draft-card:hover,
+.relic-pick-card:hover,
+[data-testid^="relic-pick-"]:hover {
+  border-color: var(--brass-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(243, 207, 122, 0.2);
+}
+
+.relic-pick-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.relic-key-hint {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--brass-bright);
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(200, 155, 60, 0.18);
+}
+
+.relic-card-name {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--brass-bright);
+}
+
+.relic-card-desc {
+  font-size: 0.7rem;
+  line-height: 1.3;
+  color: var(--text-secondary);
+}
+
+.run-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   4. SCHEME 1: 《吞噬转轮》(DEVOUR REELS) — 2-COL & 3-COL COCKPIT
+   ========================================================================== */
+
+.devour-reels-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(290px, 370px);
+  gap: 12px;
+  align-items: start;
+  width: 100%;
+}
+
+.devour-reels-stage.devour-reels-stage--3col,
+.devour-reels-stage:has(> .devour-boss-column) {
+  grid-template-columns: minmax(230px, 280px) minmax(320px, 1fr) minmax(270px, 330px);
+}
+
+.devour-boss-column,
+.devour-main-column {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.devour-boss-column [data-testid="boss-arena-card"],
+.devour-boss-column .boss-arena-card {
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+
+.devour-boss-column .boss-header-row {
+  justify-content: center;
+}
+
+.abyssal-maw-banner,
+[data-testid="abyssal-maw"] {
+  background: var(--bg-crimson-felt);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.maw-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.maw-armor-badge,
+.maw-devoured-badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(200, 155, 60, 0.16);
+  border: 1px solid rgba(200, 155, 60, 0.34);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--brass-bright);
+}
+
+.maw-synergy-ticker {
+  font-size: 0.72rem;
+  color: var(--accent-gold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.indigestion-bar-wrapper,
+[data-testid="indigestion-meter"] {
+  background: rgba(18, 14, 11, 0.85);
+  border: 1px solid rgba(200, 155, 60, 0.25);
+  border-radius: 8px;
+  padding: 5px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.indigestion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.73rem;
+  color: var(--text-secondary);
+}
+
+.indigestion-fill {
+  background: linear-gradient(90deg, #06d6a0 0%, #ffd166 55%, #ef476f 100%);
+}
+
+.devour-grid,
+[data-testid="devour-grid"] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  width: 100%;
+  max-width: 416px;
   margin: 0 auto;
+  padding: 9px;
+  background: var(--bg-slot-well);
+  border: 2px solid var(--brass-rim);
+  border-radius: 12px;
+  box-shadow: var(--shadow-inset-well);
 }
 
 .devour-cell {
-  background: var(--bg-slot-cell);
-  border: 2px solid var(--border-subtle);
-  border-radius: 10px;
-  min-height: 96px;
+  background: var(--bg-card);
+  border: 1.5px solid rgba(200, 155, 60, 0.3);
+  border-radius: 9px;
+  min-height: 82px;
+  padding: 5px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 8px;
+  justify-content: space-between;
   text-align: center;
+  position: relative;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
 }
 
-.prob-mod-panel {
-  background: var(--bg-card);
+.devour-cell[data-tier="2"] {
+  border-color: rgba(46, 196, 241, 0.55);
+}
+
+.devour-cell[data-tier="3"] {
+  border-color: rgba(247, 127, 0, 0.68);
+}
+
+.devour-cell[data-tier="4"] {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 12px rgba(255, 209, 102, 0.2);
+}
+
+.devour-cell.is-center-maw-cell {
+  background: radial-gradient(circle at 50% 45%, #35161b 0%, #190d0f 100%);
+  border: 2px solid var(--brass-bright);
+}
+
+.devour-cell.is-predator-fed {
+  border-color: var(--accent-devour);
+  box-shadow: 0 0 14px rgba(247, 127, 0, 0.38);
+}
+
+.devour-cell.is-devoured {
+  opacity: 0.62;
+  border-style: dashed;
+  filter: saturate(0.65);
+}
+
+.cell-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+}
+
+.cell-tier-badge {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(200, 155, 60, 0.18);
+  color: var(--brass-bright);
+  font-weight: 700;
+}
+
+.cell-maw-crown {
+  color: var(--accent-gold);
+  font-weight: 800;
+}
+
+.cell-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell-name {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.cell-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 0.64rem;
+}
+
+.cell-pts {
+  color: var(--accent-gold);
+  font-weight: 700;
+}
+
+.cell-devour-badge {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(247, 127, 0, 0.25);
+  color: #ffd166;
+  font-weight: 700;
+}
+
+.cell-eaten-tag {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(230, 57, 70, 0.24);
+  color: #ff99ac;
+}
+
+.devour-action-bar,
+.maw-workshop-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.prob-mod-panel,
+[data-testid="prob-mod-panel"] {
+  background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
-  padding: 12px;
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-/* Scheme 2: 6-Chamber Revolver Cylinder */
-.revolver-cylinder {
+.prob-panel-header h3 {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--brass-bright);
+}
+
+.prob-panel-header p {
+  margin: 2px 0 0;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.prob-preset-bar {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  max-width: 420px;
-  margin: 0 auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
 }
 
-.revolver-chamber {
-  background: var(--bg-slot-cell);
-  border: 2px solid var(--border-subtle);
+.prob-preset-bar .btn-arcade {
+  padding: 4px 6px;
+  font-size: 0.7rem;
+}
+
+.prob-symbol-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prob-mod-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px auto;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 7px;
+  min-height: 28px;
+  border-radius: 6px;
+  background: rgba(10, 8, 6, 0.52);
+  border: 1px solid rgba(200, 155, 60, 0.14);
+}
+
+.prob-sym-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.prob-sym-weight {
+  font-size: 0.74rem;
+  text-align: right;
+  color: var(--accent-gold);
+}
+
+.prob-row-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.btn-prob-boost,
+.btn-prob-banish {
+  padding: 2px 6px;
+  font-size: 0.66rem;
+  border-radius: 5px;
+}
+
+.prob-bar-track {
+  grid-column: 1 / -1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.prob-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brass-rim), var(--accent-devour));
+}
+
+/* ==========================================================================
+   5. SCHEME 2: 《左轮地牢》(REVOLVER DUNGEON) — RADIAL 60° ROTATING DRUM
+   ========================================================================== */
+
+.revolver-dungeon-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.revolver-arena-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.15fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.revolver-status-row {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) minmax(260px, 1.45fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.player-hp-widget,
+.roulette-risk-widget {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  padding: 6px 11px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.hp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.76rem;
+}
+
+.player-hp-fill {
+  background: linear-gradient(90deg, #06d6a0, #2ec4f1);
+}
+
+.roulette-risk-widget {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.76rem;
+}
+
+.grit-active-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 209, 102, 0.18);
+  border: 1px solid var(--accent-gold);
+  color: var(--accent-gold);
+  font-weight: 700;
+  font-size: 0.7rem;
+}
+
+/* True Circular Radial 6-Chamber Revolver Drum (`left`/`top` trig coordinates) */
+.revolver-drum-assembly {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.revolver-cylinder,
+[data-testid="revolver-cylinder"] {
+  --drum-radius: 98px;
+  position: relative;
+  width: 308px;
+  height: 308px;
+  margin: 4px auto;
   border-radius: 50%;
-  width: 104px;
-  height: 104px;
+  background:
+    radial-gradient(circle at 50% 50%, #2b2118 0%, #17120e 58%, #0c0907 100%);
+  border: 3px solid var(--brass-rim);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.72),
+    inset 0 0 0 5px rgba(200, 155, 60, 0.14),
+    inset 0 4px 18px rgba(0, 0, 0, 0.85);
+  transition: transform 0.34s cubic-bezier(0.22, 1.28, 0.36, 1);
+}
+
+/* Central Machined Brass Spindle */
+.revolver-cylinder::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  margin-top: -22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #f3cf7a 0%, #c89b3c 55%, #4b3510 100%);
+  border: 2px solid #16110d;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Top 12 o'clock Firing-Pin Reticle Marker */
+.revolver-cylinder::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  margin-left: -7px;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 10px solid var(--accent-mult);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9));
+  pointer-events: none;
+  z-index: 6;
+}
+
+.revolver-spindle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.revolver-hammer-reticle {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 6;
+}
+
+.revolver-chamber,
+[data-testid^="chamber-"] {
+  position: absolute;
+  width: 86px;
+  height: 86px;
+  margin-left: -43px;
+  margin-top: -43px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #261e18 0%, #110d0a 100%);
+  border: 2px solid rgba(200, 155, 60, 0.42);
+  padding: 5px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 0 auto;
+  gap: 1px;
+  text-align: center;
+  cursor: pointer;
+  z-index: 4;
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.8), 0 3px 8px rgba(0, 0, 0, 0.55);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Scheme 3: 1x5 Jackpot TD Slot Turret Bar */
+/* 60-degree Polar Coordinates around Drum Center (R = 98px):
+   #0 (-90deg): (0, -98)
+   #1 (-30deg): (+84.87, -49)
+   #2 (+30deg): (+84.87, +49)
+   #3 (+90deg): (0, +98)
+   #4 (+150deg): (-84.87, +49)
+   #5 (+210deg): (-84.87, -49) */
+.revolver-chamber[data-chamber-index="0"],
+[data-testid="chamber-0"],
+.revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(1) {
+  --chamber-angle: -90deg;
+  left: 50%;
+  top: calc(50% - 98px);
+}
+
+.revolver-chamber[data-chamber-index="1"],
+[data-testid="chamber-1"],
+.revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(2) {
+  --chamber-angle: -30deg;
+  left: calc(50% + 84.87px);
+  top: calc(50% - 49px);
+}
+
+.revolver-chamber[data-chamber-index="2"],
+[data-testid="chamber-2"],
+.revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(3) {
+  --chamber-angle: 30deg;
+  left: calc(50% + 84.87px);
+  top: calc(50% + 49px);
+}
+
+.revolver-chamber[data-chamber-index="3"],
+[data-testid="chamber-3"],
+.revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(4) {
+  --chamber-angle: 90deg;
+  left: 50%;
+  top: calc(50% + 98px);
+}
+
+.revolver-chamber[data-chamber-index="4"],
+[data-testid="chamber-4"],
+.revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(5) {
+  --chamber-angle: 150deg;
+  left: calc(50% - 84.87px);
+  top: calc(50% + 49px);
+}
+
+.revolver-chamber[data-chamber-index="5"],
+[data-testid="chamber-5"],
+.revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(6) {
+  --chamber-angle: 210deg;
+  left: calc(50% - 84.87px);
+  top: calc(50% - 49px);
+}
+
+@supports (left: calc(1px * cos(0deg))) {
+  .revolver-chamber[data-chamber-index],
+  [data-testid^="chamber-"] {
+    left: calc(50% + var(--drum-radius, 98px) * cos(var(--chamber-angle, -90deg)));
+    top: calc(50% + var(--drum-radius, 98px) * sin(var(--chamber-angle, -90deg)));
+  }
+}
+
+.revolver-chamber.is-empty-chamber {
+  opacity: 0.78;
+  border-style: dashed;
+}
+
+.revolver-chamber.is-loaded-chamber {
+  border-color: var(--brass-rim);
+}
+
+.revolver-chamber.is-active-chamber {
+  border-color: var(--accent-mult);
+  box-shadow: 0 0 16px rgba(239, 71, 111, 0.55), inset 0 0 10px rgba(255, 209, 102, 0.25);
+  z-index: 5;
+}
+
+.revolver-chamber.is-targeted-chamber,
+.revolver-chamber:hover {
+  border-color: var(--brass-bright);
+}
+
+.chamber-top-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 0.54rem;
+  color: var(--text-secondary);
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.chamber-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chamber-name {
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.1;
+  max-width: 74px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chamber-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3px;
+  font-size: 0.55rem;
+  color: var(--accent-gold);
+}
+
+.chamber-devour-tag {
+  color: var(--accent-devour);
+  font-weight: 800;
+}
+
+.ammo-belt-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+}
+
+.ammo-belt-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: var(--bg-card);
+  border: 1px solid var(--brass-rim);
+  cursor: pointer;
+}
+
+.revolver-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   6. SCHEME 3: 《黄金矿工防线》(JACKPOT TD) — CANYON LANE & 1×5 TURRET WALL
+   ========================================================================== */
+
+.jackpot-td-view {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+}
+
+.td-top-status-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.td-status-badge {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.td-effect-pill {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(46, 196, 241, 0.2);
+  border: 1px solid var(--accent-chips);
+  color: #caf0f8;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+[data-testid="td-lane-canvas"],
+.td-battlefield-lane {
+  position: relative;
+  height: 186px;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, #131c18 0%, #1d1712 70%, #2c1317 100%);
+  border: 1.5px solid var(--border-subtle);
+  box-shadow: var(--shadow-inset-well);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.td-battlefield-lane.lane-critical {
+  border-color: var(--accent-danger);
+  box-shadow: inset 0 0 24px rgba(230, 57, 70, 0.28);
+}
+
+.td-battlefield-lane.lane-frozen {
+  border-color: var(--accent-chips);
+  box-shadow: inset 0 0 26px rgba(46, 196, 241, 0.3);
+}
+
+canvas.td-lane-render-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.td-lane-telemetry {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: rgba(9, 8, 7, 0.65);
+  border-bottom: 1px solid rgba(200, 155, 60, 0.18);
+  font-size: 0.72rem;
+}
+
+.td-lane-track {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 140px;
+  z-index: 2;
+}
+
+.td-enemy-token {
+  position: absolute;
+  left: var(--enemy-x, 50%);
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(18, 13, 11, 0.92);
+  border: 1px solid var(--brass-rim);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.65);
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  z-index: 4;
+  transition: top 0.08s linear, left 0.12s ease-out;
+}
+
+.td-lane-track > .td-enemy-token:nth-of-type(5n + 1) { --enemy-x: 22%; }
+.td-lane-track > .td-enemy-token:nth-of-type(5n + 2) { --enemy-x: 42%; }
+.td-lane-track > .td-enemy-token:nth-of-type(5n + 3) { --enemy-x: 62%; }
+.td-lane-track > .td-enemy-token:nth-of-type(5n + 4) { --enemy-x: 80%; }
+.td-lane-track > .td-enemy-token:nth-of-type(5n + 5) { --enemy-x: 32%; }
+
+@supports selector(:nth-child(1 of .td-enemy-token)) {
+  .td-lane-track > .td-enemy-token:nth-of-type(n) { --enemy-x: 50%; }
+  .td-lane-track > :nth-child(5n + 1 of .td-enemy-token) { --enemy-x: 22%; }
+  .td-lane-track > :nth-child(5n + 2 of .td-enemy-token) { --enemy-x: 42%; }
+  .td-lane-track > :nth-child(5n + 3 of .td-enemy-token) { --enemy-x: 62%; }
+  .td-lane-track > :nth-child(5n + 4 of .td-enemy-token) { --enemy-x: 80%; }
+  .td-lane-track > :nth-child(5n + 5 of .td-enemy-token) { --enemy-x: 32%; }
+}
+
+.td-enemy-token.td-enemy-boss {
+  border-color: var(--accent-mult);
+  background: linear-gradient(180deg, #351319 0%, #1a0b0d 100%);
+  color: var(--accent-gold);
+  z-index: 5;
+}
+
+.td-red-zone-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 72%;
+  border-top: 2px dashed var(--accent-danger);
+  padding: 2px 10px 0;
+  text-align: right;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #ff99ac;
+  pointer-events: none;
+  z-index: 2;
+}
+
+[data-testid="td-slot-bar"],
 .td-slot-bar {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-}
-
-.td-pedestal {
-  background: var(--bg-slot-cell);
-  border: 2px solid var(--accent-gold);
-  border-radius: 10px;
-  padding: 10px;
-  text-align: center;
-}
-
-/* Scheme 5: 4x4 Abyssal Matrix */
-.abyssal-matrix {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
-  max-width: 480px;
+}
+
+[data-testid^="td-pedestal-"],
+.td-pedestal-card,
+.td-pedestal {
+  background: var(--bg-card);
+  border: 1.5px solid rgba(200, 155, 60, 0.38);
+  border-radius: 9px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  box-shadow: var(--shadow-card-raise);
+}
+
+.td-pedestal-card.pedestal-star-2 {
+  border-color: var(--accent-chips);
+  box-shadow: 0 0 12px rgba(46, 196, 241, 0.22);
+}
+
+.td-pedestal-card.pedestal-star-3 {
+  border-color: var(--accent-gold);
+  background: linear-gradient(180deg, #332614 0%, #1b140b 100%);
+  box-shadow: 0 0 16px rgba(255, 209, 102, 0.32);
+}
+
+.td-pedestal-card.is-pedestal-locked,
+.td-pedestal-card.pedestal-locked {
+  border: 2px solid var(--accent-gold);
+  box-shadow: 0 0 14px rgba(255, 209, 102, 0.35), inset 0 0 0 1px rgba(255, 209, 102, 0.25);
+}
+
+.td-pedestal-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.66rem;
+}
+
+.td-pedestal-rank {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.td-pedestal-stars {
+  color: var(--accent-gold);
+  font-weight: 900;
+}
+
+.td-pedestal-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.td-pedestal-name {
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.td-pedestal-stats {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.td-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   7. SCHEME 4: 《咒印弹珠台》(SIGIL PACHINKO) — 2D ALCHEMICAL CASCADE BOARD
+   ========================================================================== */
+
+.sigil-pachinko-view {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+}
+
+.pachinko-arena-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+[data-testid="pachinko-spawner"],
+.pachinko-spawner-bar,
+.pachinko-spawner {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 760px;
   margin: 0 auto;
 }
 
-/* GDD Viewer Drawer / Panel */
+.pachinko-spawner-slot {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 5px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 0.74rem;
+}
+
+.spawner-orb-name {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spawner-orb-pts {
+  color: var(--accent-gold);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+[data-testid="pachinko-board"],
+.pachinko-arena-board {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  height: 248px;
+  margin: 0 auto;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 25%, rgba(6, 214, 160, 0.12) 0%, transparent 60%),
+    var(--bg-slot-well);
+  border: 2px solid var(--brass-rim);
+  box-shadow: var(--shadow-inset-well);
+  overflow: hidden;
+}
+
+.pachinko-pegs-layer,
+.pachinko-orbs-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pachinko-peg {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, #2b221a 0%, #130f0c 100%);
+  border: 1.5px solid var(--brass-rim);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.75);
+  font-size: 0.82rem;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.pachinko-peg.peg-active,
+.pachinko-peg.peg-upgraded {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 12px rgba(255, 209, 102, 0.65);
+}
+
+.pachinko-orb {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 35% 35%, #fff5d6 0%, #f77f00 62%, #7a1628 100%);
+  border: 1.5px solid #fff3b0;
+  box-shadow: 0 0 12px rgba(247, 127, 0, 0.85);
+  font-size: 0.82rem;
+  z-index: 4;
+}
+
+.pachinko-orb.orb-devoured {
+  opacity: 0.35;
+  transform: translate(-50%, -50%) scale(0.65);
+}
+
+.pachinko-crucibles-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+[data-testid^="pachinko-crucible-"],
+.pachinko-crucible {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 9px;
+  padding: 5px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.pachinko-crucible.crucible-jackpot {
+  background: linear-gradient(180deg, #3c2812 0%, #1f1409 100%);
+  border-color: var(--accent-gold);
+}
+
+.pachinko-crucible.crucible-hit {
+  border-color: var(--accent-jade);
+  box-shadow: 0 0 14px rgba(6, 214, 160, 0.4);
+}
+
+.crucible-mult {
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: var(--accent-gold);
+}
+
+.crucible-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.crucible-count {
+  font-size: 0.64rem;
+  color: var(--text-secondary);
+}
+
+.pachinko-aim-bar,
+.pachinko-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   8. SCHEME 5: 《深渊矩阵》(ABYSSAL GRID) — TRUE 4×4 HOLD-&-SPIN WAR TABLE
+   ========================================================================== */
+
+.abyssal-grid-view {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+}
+
+.abyssal-arena-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.abyssal-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.76rem;
+}
+
+.abyssal-bingo-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(16, 13, 10, 0.72);
+  border: 1px solid rgba(200, 155, 60, 0.2);
+  min-height: 28px;
+}
+
+.bingo-line-pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 209, 102, 0.18);
+  border: 1px solid var(--accent-gold);
+  color: var(--accent-gold);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.bingo-line-empty {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+[data-testid="abyssal-matrix"],
+.abyssal-matrix-grid,
+.abyssal-matrix {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 9px;
+  border-radius: 12px;
+  background: var(--bg-slot-well);
+  border: 2px solid var(--brass-rim);
+  box-shadow: var(--shadow-inset-well);
+}
+
+[data-testid^="matrix-cell-"],
+.matrix-cell-card {
+  min-height: 68px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid rgba(200, 155, 60, 0.26);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.1s ease, border-color 0.14s ease;
+}
+
+.matrix-cell-card:hover {
+  border-color: var(--brass-bright);
+}
+
+.matrix-cell-card.matrix-cell-commander {
+  border-color: rgba(247, 127, 0, 0.6);
+}
+
+.matrix-cell-card.matrix-cell-locked {
+  border: 1.5px solid var(--accent-gold);
+  background: linear-gradient(180deg, #332615 0%, #1b140b 100%);
+  box-shadow: 0 0 12px rgba(255, 209, 102, 0.24), inset 0 0 0 1px rgba(255, 209, 102, 0.2);
+}
+
+.matrix-cell-card.matrix-cell-empty {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+.matrix-cell-top {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.58rem;
+  color: var(--text-secondary);
+}
+
+.matrix-hold-badge {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(255, 209, 102, 0.22);
+  color: var(--accent-gold);
+  font-weight: 800;
+}
+
+.matrix-cell-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.matrix-cell-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.matrix-cell-meta {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: var(--accent-gold);
+}
+
+.matrix-devour-tag {
+  color: var(--accent-devour);
+  font-weight: 800;
+}
+
+.bingo-sightlines-svg,
+.abyssal-bingo-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.abyssal-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   9. BUILT-IN LIVE GDD TOME VIEWER & AUDIO SYNTHESIZER RACK
+   ========================================================================== */
+
 .gdd-viewer-panel {
   background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
-  padding: 18px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .gdd-viewer-header {
@@ -345,62 +2088,454 @@ body {
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+.gdd-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gdd-title-group h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--brass-bright);
+}
+
+.gdd-file-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(200, 155, 60, 0.16);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-gold);
+}
+
+.btn-launch-prototype {
+  background: linear-gradient(180deg, #e03553 0%, #a81931 100%);
+  border-color: var(--brass-bright);
+  color: #ffffff;
 }
 
 .gdd-doc-selector {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .gdd-content-body {
-  background: var(--bg-card);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #130f0c;
+  border: 1px solid rgba(200, 155, 60, 0.22);
   border-radius: 10px;
-  padding: 18px 22px;
+  padding: 16px 20px;
   line-height: 1.65;
-  max-height: 620px;
+  max-height: 500px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
   overflow-y: auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  -webkit-overflow-scrolling: touch;
+  color: var(--text-primary);
+}
+
+.gdd-content-body code {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(200, 155, 60, 0.12);
+  color: #f3cf7a;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.gdd-content-body h1,
+.gdd-content-body h2,
+.gdd-content-body h3 {
+  color: var(--brass-bright);
+  margin-top: 1em;
+  margin-bottom: 0.45em;
+}
+
+.gdd-content-body blockquote {
+  margin: 10px 0;
+  padding: 8px 14px;
+  border-left: 3px solid var(--brass-rim);
+  background: rgba(200, 155, 60, 0.08);
+  border-radius: 0 6px 6px 0;
 }
 
 .gdd-table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
   margin: 12px 0;
 }
 
+.gdd-table tr:first-child td {
+  background: rgba(200, 155, 60, 0.16);
+  color: var(--brass-bright);
+  font-weight: 800;
+}
+
 .gdd-table td {
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(200, 155, 60, 0.22);
   padding: 6px 10px;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .gdd-code-block {
-  background: #090710;
+  background: #090807;
+  border: 1px solid rgba(200, 155, 60, 0.24);
   padding: 12px;
   border-radius: 8px;
+  max-width: 100%;
   overflow-x: auto;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  color: #f3cf7a;
 }
 
-/* Audio Lab & Sandbox Toolbar */
-.audio-lab-panel,
-.sandbox-toolbar {
+.gdd-code-block code {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: inherit;
+  color: inherit;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.gdd-divider {
+  border: none;
+  border-top: 1px solid rgba(200, 155, 60, 0.22);
+  margin: 14px 0;
+}
+
+/* Audio Synthesizer Rack */
+.audio-lab-panel {
   background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
-  padding: 12px 16px;
+  padding: 16px 18px;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.audio-lab-header {
+  display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px;
+}
+
+.audio-lab-header h3 {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--brass-bright);
 }
 
 .audio-lab-buttons {
   display: flex;
   flex-wrap: wrap;
+  gap: 10px;
+}
+
+.audio-lab-telemetry {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #0e0b09;
+  border: 1px solid rgba(200, 155, 60, 0.25);
+  font-size: 0.85rem;
+}
+
+.audio-lab-telemetry strong {
+  font-family: var(--font-mono);
+  color: var(--accent-jade);
+}
+
+/* ==========================================================================
+   10. FLOATING COLLAPSIBLE SANDBOX DRAWER (`footer.sandbox-toolbar`)
+   ========================================================================== */
+
+.sandbox-toolbar {
+  position: fixed;
+  right: 14px;
+  bottom: 10px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.sandbox-bar-always,
+.sandbox-drawer-body,
+.sandbox-toolbar > .sandbox-controls-left,
+.sandbox-toolbar > .sandbox-controls-right {
+  pointer-events: auto;
+}
+
+/* Support SHELL_FALLBACK_HTML when #sandbox-drawer-toggle is absent */
+.sandbox-toolbar:not(:has(.sandbox-drawer-body)) {
+  flex-direction: row;
+  background: rgba(20, 15, 12, 0.94);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  padding: 5px 10px;
+}
+
+.sandbox-bar-always {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 9px;
+  background: rgba(18, 14, 11, 0.94);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.72);
+}
+
+.sandbox-bar-always .btn-arcade {
+  padding: 4px 9px;
+  font-size: 0.72rem;
+}
+
+.sandbox-drawer-body {
+  display: none;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(22, 17, 13, 0.97);
+  border: 1px solid var(--brass-bright);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.8);
+}
+
+.sandbox-drawer-checkbox:checked ~ .sandbox-toolbar .sandbox-drawer-body {
+  display: block;
+}
+
+.sandbox-drawer-checkbox:checked ~ .sandbox-toolbar .btn-sandbox-toggle {
+  background: linear-gradient(180deg, #4b1d24 0%, #2c1015 100%);
+  border-color: var(--brass-bright);
+  color: var(--brass-bright);
+}
+
+.sandbox-controls-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+}
+
+.sandbox-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--brass-bright);
+}
+
+.sandbox-seed-input {
+  width: 96px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--brass-rim);
+  background: #0d0a08;
+  color: var(--accent-gold);
+  font-size: 0.8rem;
+}
+
+/* ==========================================================================
+   11. RESPONSIVE TABLET & MOBILE (`390×844` ZERO HORIZONTAL OVERFLOW)
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .arcade-shell {
+    height: auto;
+    max-height: none;
+    padding-bottom: 58px;
+  }
+
+  .hud-top-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .devour-reels-stage,
+  .devour-reels-stage.devour-reels-stage--3col,
+  .devour-reels-stage:has(> .devour-boss-column),
+  .revolver-arena-grid,
+  .pachinko-arena-grid,
+  .abyssal-arena-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .revolver-status-row,
+  .td-top-status-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .arcade-shell {
+    padding: 6px 8px 64px;
+  }
+
+  .arcade-subtitle,
+  .nav-divider {
+    display: none;
+  }
+
+  .nav-tab-btn {
+    padding: 4px 7px;
+    font-size: 0.72rem;
+  }
+
+  .hud-top-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hud-chip-box {
+    min-width: 64px;
+    padding: 3px 6px;
+  }
+
+  .relic-draft-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .game-stage {
+    padding: 8px;
+  }
+
+  /* Scale Radial Drum cleanly inside 390px viewport (`272px < 358px`) */
+  .revolver-cylinder,
+  [data-testid="revolver-cylinder"] {
+    --drum-radius: 86px;
+    width: 272px;
+    height: 272px;
+  }
+
+  .revolver-chamber,
+  [data-testid^="chamber-"] {
+    width: 74px;
+    height: 74px;
+    margin-left: -37px;
+    margin-top: -37px;
+  }
+
+  .revolver-chamber[data-chamber-index="0"],
+  [data-testid="chamber-0"],
+  .revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(1) {
+    --chamber-angle: -90deg;
+    left: 50%;
+    top: calc(50% - 86px);
+  }
+  .revolver-chamber[data-chamber-index="1"],
+  [data-testid="chamber-1"],
+  .revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(2) {
+    --chamber-angle: -30deg;
+    left: calc(50% + 74.48px);
+    top: calc(50% - 43px);
+  }
+  .revolver-chamber[data-chamber-index="2"],
+  [data-testid="chamber-2"],
+  .revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(3) {
+    --chamber-angle: 30deg;
+    left: calc(50% + 74.48px);
+    top: calc(50% + 43px);
+  }
+  .revolver-chamber[data-chamber-index="3"],
+  [data-testid="chamber-3"],
+  .revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(4) {
+    --chamber-angle: 90deg;
+    left: 50%;
+    top: calc(50% + 86px);
+  }
+  .revolver-chamber[data-chamber-index="4"],
+  [data-testid="chamber-4"],
+  .revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(5) {
+    --chamber-angle: 150deg;
+    left: calc(50% - 74.48px);
+    top: calc(50% + 43px);
+  }
+  .revolver-chamber[data-chamber-index="5"],
+  [data-testid="chamber-5"],
+  .revolver-cylinder > .revolver-chamber:not([data-chamber-index]):not([data-testid^="chamber-"]):nth-child(6) {
+    --chamber-angle: 210deg;
+    left: calc(50% - 74.48px);
+    top: calc(50% - 43px);
+  }
+
+  [data-testid="td-slot-bar"],
+  .td-slot-bar {
+    gap: 4px;
+  }
+
+  [data-testid^="td-pedestal-"],
+  .td-pedestal-card,
+  .td-pedestal {
+    padding: 4px;
+  }
+
+  .pachinko-crucibles-row {
+    gap: 4px;
+  }
+
+  .gdd-viewer-panel {
+    padding: 10px;
+  }
+
+  .btn-gdd-tab {
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+    font-size: 0.74rem;
+    padding: 5px 8px;
+  }
+
+  .gdd-content-body {
+    padding: 10px 12px;
+  }
+
+  .gdd-table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .gdd-table td {
+    padding: 5px 7px;
+    font-size: 0.76rem;
+    min-width: 64px;
+  }
+
+  .gdd-code-block,
+  .gdd-code-block code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .gdd-code-block {
+    padding: 8px 10px;
+    font-size: 0.74rem;
+  }
+
+  .sandbox-toolbar {
+    right: 8px;
+    left: 8px;
+    bottom: 6px;
+  }
 }

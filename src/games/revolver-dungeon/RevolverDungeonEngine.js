@@ -1,12 +1,20 @@
 /**
- * Scheme 2: 《左轮地牢》(Revolver Dungeon) Pure Deterministic Game Engine (`F-S2-01`, `F-S2-02`, `F-S2-03`)
+ * Scheme 2: 《左轮地牢》(Revolver Dungeon) Pure Deterministic Game Engine (`F-S2-01`, `F-S2-02`, `F-S2-03`, `F-R2-04`)
  * Zero DOM dependencies — runs in both Browser and Node.js (`node --test`).
  */
 
 import { createPRNG } from '../../core/PRNG.js';
 import { sanitizeNumber, safeClamp } from '../../core/BigNumber.js';
 import { calculateDevourMultiplier, calculateSpinDamage } from '../../core/ScoreFormula.js';
-import { createEconomyState, consumePull, settleWaveClear } from '../../core/EconomyEngine.js';
+import {
+  createEconomyState,
+  consumePull,
+  settleWaveClear,
+  startRelicDraft,
+  resolvePendingRelicDraft,
+  enterEndlessMode,
+  spendEconomyGold,
+} from '../../core/EconomyEngine.js';
 import { createEventBus } from '../../core/EventBus.js';
 import { createFlowTracker } from '../../core/FlowTracker.js';
 import {
@@ -22,6 +30,7 @@ export class RevolverDungeonEngine {
     this.schemeId = 'revolver-dungeon';
     this.seed = Number.isFinite(Number(options.seed)) ? Number(options.seed) : 12345;
     this.prng = createPRNG(this.seed);
+    this.shopPrng = createPRNG((this.seed ^ 0x5a5a5a5a) >>> 0 || 54321);
     this.bus = options.bus || createEventBus();
     this.flowTracker = options.flowTracker || createFlowTracker({ bus: this.bus });
     this.sound = options.sound || null;
@@ -53,17 +62,24 @@ export class RevolverDungeonEngine {
     this._forcedChamberIndex = null;
     this._forcedBackfire = undefined;
 
+    this.selectedChamberIndex = null;
+    this._lastBeltLoaded = null;
+
     this.gritMultiplier = 1.0;
     this.nextShotMultiplier = 1.0;
     this.bloodRageActive = false;
     this.totalRunDevoured = 0;
     this.lastDevourEvents = [];
-    this.victory = false;
+    this.victory = Boolean(options.victory ?? false);
+    this.gameOver = Boolean(options.gameOver ?? false);
+    this.endlessMode = Boolean(options.endlessMode ?? initialFloor > BOSSES.length);
+    this.economy.endlessMode = this.endlessMode;
 
     const initialBulletIds = Array.isArray(options.chambers)
       ? options.chambers
       : ['lead_bullet', 'vampire_bullet', 'empty', 'lead_bullet', 'empty', 'scatter_bullet'];
     this.chambers = this._buildChambers(initialBulletIds);
+    this.ammoBelt = this._generateAmmoBelt();
 
     this.backfireRisk = 0;
     this.hitOdds = 0;
@@ -80,6 +96,32 @@ export class RevolverDungeonEngine {
       triggeredSynergies: [],
       settlementDurationMs: 1,
     });
+  }
+
+  _rollShopBulletObject(slotIndex = 0) {
+    const picked = this.shopPrng.pickWeighted(LOADABLE_BULLET_WEIGHTS);
+    const id = typeof picked === 'string' && BULLET_MAP[picked] ? picked : 'lead_bullet';
+    const meta = BULLET_MAP[id] || BULLET_MAP.lead_bullet;
+    return {
+      slotIndex,
+      id: meta.id,
+      bulletId: meta.id,
+      name: meta.name,
+      zhName: meta.zhName,
+      icon: meta.icon,
+      tier: meta.tier,
+      basePoints: meta.basePoints,
+      mult: meta.mult,
+      cost: Math.max(10, sanitizeNumber(meta.cost, 20)),
+    };
+  }
+
+  _generateAmmoBelt() {
+    const belt = [];
+    for (let i = 0; i < 3; i++) {
+      belt.push(this._rollShopBulletObject(i));
+    }
+    return belt;
   }
 
   _createChamberObject(index, bulletIdOrObj) {
@@ -109,6 +151,7 @@ export class RevolverDungeonEngine {
       tier: meta.tier,
       basePoints: meta.basePoints,
       mult: meta.mult,
+      cost: meta.cost || 0,
       devourStacks: prevStacks,
       bonusPoints: prevBonus,
     };
@@ -161,6 +204,7 @@ export class RevolverDungeonEngine {
 
   setSeed(seed) {
     this.seed = this.prng.setSeed(seed);
+    this.shopPrng.setSeed((this.seed ^ 0x5a5a5a5a) >>> 0 || 54321);
     this._forcedChamberIndex = null;
     this._forcedBackfire = undefined;
     return this.seed;
@@ -169,8 +213,10 @@ export class RevolverDungeonEngine {
   reset(options = {}) {
     if (options.seed !== undefined) {
       this.seed = this.prng.setSeed(options.seed);
+      this.shopPrng.setSeed((this.seed ^ 0x5a5a5a5a) >>> 0 || 54321);
     } else {
       this.prng.setSeed(this.seed);
+      this.shopPrng.setSeed((this.seed ^ 0x5a5a5a5a) >>> 0 || 54321);
     }
     this._initCoreState(options);
     return this.getState();
@@ -179,6 +225,7 @@ export class RevolverDungeonEngine {
   forceNextSpin(chambersOrConfig) {
     if (Array.isArray(chambersOrConfig)) {
       this.chambers = this._buildChambers(chambersOrConfig);
+      this._lastBeltLoaded = null;
       this._recalculateOdds();
       return this.getState();
     }
@@ -235,6 +282,9 @@ export class RevolverDungeonEngine {
 
     if (forcedConfig.playerHp !== undefined) {
       this.playerHp = safeClamp(sanitizeNumber(forcedConfig.playerHp, this.playerHp), 0, this.playerMaxHp);
+      if (this.playerHp > 0 && forcedConfig.gameOver === undefined) {
+        this.gameOver = false;
+      }
     }
 
     if (forcedConfig.pullsRemaining !== undefined || forcedConfig.spinsRemaining !== undefined) {
@@ -264,6 +314,23 @@ export class RevolverDungeonEngine {
       this.nextShotMultiplier = this.gritMultiplier;
     }
 
+    if (forcedConfig.victory !== undefined) {
+      this.victory = Boolean(forcedConfig.victory);
+    }
+
+    if (forcedConfig.gameOver !== undefined) {
+      this.gameOver = Boolean(forcedConfig.gameOver);
+    }
+
+    if (forcedConfig.endlessMode !== undefined) {
+      this.endlessMode = Boolean(forcedConfig.endlessMode);
+      this.economy.endlessMode = this.endlessMode;
+    }
+
+    if (forcedConfig.pendingRelicDraft !== undefined) {
+      this.economy.pendingRelicDraft = forcedConfig.pendingRelicDraft;
+    }
+
     if (forcedConfig.activeChamberIndex !== undefined) {
       this.activeChamberIndex = safeClamp(
         Math.floor(sanitizeNumber(forcedConfig.activeChamberIndex, 0)),
@@ -290,6 +357,7 @@ export class RevolverDungeonEngine {
     const chamberArr = forcedConfig.chambers || forcedConfig.grid || forcedConfig.nextSpin;
     if (Array.isArray(chamberArr)) {
       this.chambers = this._buildChambers(chamberArr);
+      this._lastBeltLoaded = null;
     }
 
     this._recalculateOdds();
@@ -297,10 +365,149 @@ export class RevolverDungeonEngine {
   }
 
   /**
+   * Targets a specific chamber (`#0..#5`) for tactical ammo belt loading (`T6-25`).
+   * Supports both `(Click Chamber -> Click Belt Slot)` and `(Click Belt Slot -> Click Chamber)`.
+   * @param {number} chamberIndex
+   */
+  selectChamber(chamberIndex) {
+    const idx = safeClamp(Math.floor(sanitizeNumber(chamberIndex, 0)), 0, 5);
+    this.selectedChamberIndex = idx;
+
+    // If a belt slot was just loaded into the default chamber (#0) before clicking Chamber #idx,
+    // relocate that newly bought bullet into Chamber #idx so both click orders work seamlessly.
+    if (
+      this._lastBeltLoaded &&
+      this._lastBeltLoaded.chamberIndex !== idx &&
+      this.chambers[idx]?.id === 'empty' &&
+      this.chambers[this._lastBeltLoaded.chamberIndex]?.id === this._lastBeltLoaded.bulletId
+    ) {
+      const movedBulletId = this._lastBeltLoaded.bulletId;
+      const oldIdx = this._lastBeltLoaded.chamberIndex;
+      this.chambers[oldIdx] = this._createChamberObject(oldIdx, 'empty');
+      this.chambers[idx] = this._createChamberObject(idx, movedBulletId);
+      this._lastBeltLoaded = null;
+      this.sound?.playReelClack(idx, 6);
+      this._recalculateOdds();
+    }
+
+    return this.getState();
+  }
+
+  /**
+   * Purchases a bullet from the 3-Bullet Tactical Ammo Belt (`slotIndex: 0..2`) and loads it into
+   * the targeted chamber (`selectedChamberIndex` or first empty chamber) (`T6-25`).
+   * @param {number} [slotIndex=0]
+   * @param {number|null} [targetChamberIndex=null]
+   */
+  buyAmmoBeltSlot(slotIndex = 0, targetChamberIndex = null) {
+    const sIdx = safeClamp(Math.floor(sanitizeNumber(slotIndex, 0)), 0, 2);
+    if (!Array.isArray(this.ammoBelt) || this.ammoBelt.length < 3) {
+      this.ammoBelt = this._generateAmmoBelt();
+    }
+    const slot = this.ammoBelt[sIdx] || this._rollShopBulletObject(sIdx);
+    const bulletCost = Math.max(10, sanitizeNumber(slot.cost, 20));
+
+    if (this.economy.gold <= 0) {
+      return this.getState();
+    }
+    const deductAmount = Math.min(this.economy.gold, bulletCost);
+    spendEconomyGold(this.economy, deductAmount);
+
+    let targetIdx = -1;
+    let hadExplicitTarget = false;
+    if (Number.isInteger(targetChamberIndex) && targetChamberIndex >= 0 && targetChamberIndex < 6) {
+      targetIdx = targetChamberIndex;
+      hadExplicitTarget = true;
+    } else if (
+      Number.isInteger(this.selectedChamberIndex) &&
+      this.selectedChamberIndex >= 0 &&
+      this.selectedChamberIndex < 6
+    ) {
+      targetIdx = this.selectedChamberIndex;
+      hadExplicitTarget = true;
+    } else {
+      targetIdx = this.chambers.findIndex((c) => c.id === 'empty');
+      if (targetIdx === -1) {
+        let minTier = Infinity;
+        let minIdx = 0;
+        for (let i = 0; i < 6; i++) {
+          if (this.chambers[i].tier < minTier) {
+            minTier = this.chambers[i].tier;
+            minIdx = i;
+          }
+        }
+        targetIdx = minIdx;
+      }
+    }
+
+    this.chambers[targetIdx] = this._createChamberObject(targetIdx, slot.bulletId);
+    this.ammoBelt[sIdx] = this._rollShopBulletObject(sIdx);
+    this._lastBeltLoaded = hadExplicitTarget
+      ? null
+      : { chamberIndex: targetIdx, bulletId: slot.bulletId };
+
+    this.sound?.playReelClack(targetIdx, 6);
+    this._recalculateOdds();
+
+    this.bus?.emit('chamber:loaded', {
+      chamberIndex: targetIdx,
+      bulletId: slot.bulletId,
+      backfireRisk: this.backfireRisk,
+      gold: this.economy.gold,
+    });
+
+    return this.getState();
+  }
+
+  /**
+   * Explicit 3-Card Relic Draft selection (`relic-pick-0..2`).
+   * @param {string|null} relicId
+   */
+  pickRelic(relicId = null) {
+    resolvePendingRelicDraft(this.economy, relicId);
+    return this.getState();
+  }
+
+  /**
+   * Transitions from Floor 8 Victory into Floor 9+ Endless Mode (`btn-endless-mode`).
+   */
+  enterEndless() {
+    const res = enterEndlessMode(this.economy, BOSSES[BOSSES.length - 1].maxHp);
+    this.endlessMode = true;
+    this.victory = false;
+    this.gameOver = false;
+    const nextBoss = getBossForFloor(this.economy.wave);
+    this.enemyName = nextBoss.name;
+    this.enemyMaxHp = res.nextBossHp;
+    this.enemyHp = res.nextBossHp;
+    return this.getState();
+  }
+
+  /**
    * Button 2 (`[R]`): Load New Bullet into the 6-chamber cylinder without consuming a pull.
+   * Also routes Tactical Ammo Belt & Chamber Target actions.
    * @param {object|string} [payload={}]
    */
   performSecondaryAction(payload = {}) {
+    if (payload && typeof payload === 'object') {
+      const actionType = String(payload.action || payload.type || '').toLowerCase();
+      if (actionType === 'select_chamber' || actionType === 'target_chamber') {
+        return this.selectChamber(payload.chamberIndex ?? payload.index ?? 0);
+      }
+      if (actionType === 'buy_ammo' || actionType === 'select_ammo' || payload.ammoIndex !== undefined) {
+        return this.buyAmmoBeltSlot(
+          payload.ammoIndex ?? payload.slotIndex ?? 0,
+          payload.chamberIndex ?? null
+        );
+      }
+      if (actionType === 'pick_relic') {
+        return this.pickRelic(payload.relicId || payload.id);
+      }
+      if (actionType === 'enter_endless') {
+        return this.enterEndless();
+      }
+    }
+
     const candidateId =
       typeof payload === 'string'
         ? payload
@@ -325,6 +532,13 @@ export class RevolverDungeonEngine {
       payload.chamberIndex < 6
     ) {
       targetIdx = payload.chamberIndex;
+    } else if (
+      Number.isInteger(this.selectedChamberIndex) &&
+      this.selectedChamberIndex >= 0 &&
+      this.selectedChamberIndex < 6 &&
+      this.chambers[this.selectedChamberIndex]?.id === 'empty'
+    ) {
+      targetIdx = this.selectedChamberIndex;
     } else {
       targetIdx = this.chambers.findIndex((c) => c.id === 'empty');
       if (targetIdx === -1) {
@@ -361,9 +575,16 @@ export class RevolverDungeonEngine {
    * @param {object} [payload={}]
    */
   performPrimaryAction(payload = {}) {
+    // Non-blocking Relic Draft auto-advance rule (`PROJECT.md § 6.2`, `T6-31`)
+    if (Array.isArray(this.economy.pendingRelicDraft) && this.economy.pendingRelicDraft.length > 0) {
+      resolvePendingRelicDraft(this.economy, null);
+    }
+
     this.flowTracker.startTurn();
     this.flowTracker.startSettlement();
 
+    const wasOvertime = this.economy.pullsRemaining <= 0;
+    const currentBoss = getBossForFloor(this.economy.wave);
     consumePull(this.economy);
     this.sound?.playReelClack(0, 6);
 
@@ -395,14 +616,30 @@ export class RevolverDungeonEngine {
       presentIds.has('fuse_cord') &&
       presentIds.has('heavy_hammer');
 
-    const activeChamber = this.chambers[this.activeChamberIndex] || this._createChamberObject(this.activeChamberIndex, 'empty');
+    const activeChamber =
+      this.chambers[this.activeChamberIndex] ||
+      this._createChamberObject(this.activeChamberIndex, 'empty');
 
     // 3. Dry Click Resolution (when landing on 'empty' and not triggering Full Cylinder Dump)
     if (activeChamber.id === 'empty' && !isFullCylinderDump) {
+      const rouletteRelicFactor = Math.max(1.0, sanitizeNumber(this.economy.rouletteGritBonus, 1.0));
       this.economy.gold += 15;
-      this.gritMultiplier = 2.0;
-      this.nextShotMultiplier = 2.0;
+      this.gritMultiplier = Number((2.0 * rouletteRelicFactor).toFixed(2));
+      this.nextShotMultiplier = this.gritMultiplier;
       this.lastDevourEvents = [];
+
+      const drySynergies = ['russian_roulette_grit (空仓赌命存活)'];
+
+      // Floor 2 Boss (`twin_headed_hound`) dry-click pounce OR Overtime counter-attack
+      if (currentBoss.traitCode === 'dry_click_pounce' || this.economy.wave === 2 || wasOvertime) {
+        const counterDmg = Math.max(8, sanitizeNumber(currentBoss.counterAttack, 12));
+        this.playerHp = safeClamp(this.playerHp - counterDmg, 0, this.playerMaxHp);
+        drySynergies.push('boss_counter_attack (首领空仓反扑)');
+        if (this.playerHp <= 0) {
+          this.playerHp = 0;
+          this.gameOver = true;
+        }
+      }
 
       const settlementObj = this.flowTracker.completeSettlement(210);
       this.lastTurnBreakdown = calculateSpinDamage({
@@ -412,7 +649,7 @@ export class RevolverDungeonEngine {
         chainSynergyMultiplier: 1.0,
         greedMultiplier: this.economy.greedMultiplier,
         comboName: '🎲 空仓赌命存活! (Russian Roulette Grit: Next Shot ×2.0 + 15G)',
-        triggeredSynergies: ['russian_roulette_grit (空仓赌命存活)'],
+        triggeredSynergies: drySynergies,
         settlementDurationMs: settlementObj.effectiveDurationMs,
       });
 
@@ -485,6 +722,10 @@ export class RevolverDungeonEngine {
       }
     }
 
+    if (devourEvents.length > 0 && this.economy.bonusDevourStacks > 0) {
+      devourStacks += this.economy.bonusDevourStacks;
+    }
+
     this.lastDevourEvents = devourEvents;
     this.totalRunDevoured += bulletsEaten;
 
@@ -548,6 +789,7 @@ export class RevolverDungeonEngine {
     let bulletMultSum = 0;
     let firedDemonCount = 0;
     let firedVampireCount = 0;
+    let firedArmorPiercing = false;
 
     for (const idx of firedIndices) {
       const c = this.chambers[idx];
@@ -556,6 +798,7 @@ export class RevolverDungeonEngine {
       bulletMultSum += c.mult;
       if (c.id === 'demon_bullet') firedDemonCount += 1;
       if (c.id === 'vampire_bullet') firedVampireCount += 1;
+      if (c.id === 'parasite_bullet' || c.id === 'heavy_hammer') firedArmorPiercing = true;
     }
 
     if (bulletsEaten >= 2) {
@@ -580,6 +823,13 @@ export class RevolverDungeonEngine {
       } else {
         triggeredSynergies.push(`vampire_leech (🩸 猩红吸血回复 +${this.playerHp - prevHp} HP)`);
       }
+      if (currentBoss.traitCode === 'vampire_weakness') {
+        chainSynergyMultiplier = Number((chainSynergyMultiplier * 1.5).toFixed(4));
+      }
+    }
+
+    if (currentBoss.traitCode === 'iron_armor' && firedArmorPiercing) {
+      chainSynergyMultiplier = Number((chainSynergyMultiplier * 1.25).toFixed(4));
     }
 
     // Demon Bullet Russian Roulette (25% Backfire Risk + Blood Rage Overclock)
@@ -593,17 +843,26 @@ export class RevolverDungeonEngine {
 
       const didBackfire =
         forcedBf !== undefined ? Boolean(forcedBf) : this.prng.next() < 0.25;
+      const rouletteRelicFactor = Math.max(1.0, sanitizeNumber(this.economy.rouletteGritBonus, 1.0));
 
       if (didBackfire) {
         this.playerHp = safeClamp(this.playerHp - 20, 0, this.playerMaxHp);
+        if (this.playerHp <= 0) {
+          this.playerHp = 0;
+          this.gameOver = true;
+        }
         this.bloodRageActive = true;
-        chainSynergyMultiplier = Number((chainSynergyMultiplier * 3.0).toFixed(4));
+        chainSynergyMultiplier = Number(
+          (chainSynergyMultiplier * 3.0 * rouletteRelicFactor).toFixed(4)
+        );
         triggeredSynergies.push('demon_backfire_blood_rage (😈 恶魔弹炸膛·血怒爆发 ×3.0)');
         comboLabels.push('😈 恶魔炸膛·血怒爆发');
         this.sound?.playMisfireBackfire();
       } else {
         this.bloodRageActive = false;
-        chainSynergyMultiplier = Number((chainSynergyMultiplier * 2.0).toFixed(4));
+        chainSynergyMultiplier = Number(
+          (chainSynergyMultiplier * 2.0 * rouletteRelicFactor).toFixed(4)
+        );
         triggeredSynergies.push('demon_blood_gambit (😈 恶魔轮盘赌命成功 ×2.0)');
         comboLabels.push('😈 恶魔轮盘暴击');
       }
@@ -612,6 +871,10 @@ export class RevolverDungeonEngine {
         const overclockFactor = 1 + 0.5 * (totalDemonInCylinder - 1);
         chainSynergyMultiplier = Number((chainSynergyMultiplier * overclockFactor).toFixed(4));
         triggeredSynergies.push(`demon_overclock (😈 ${totalDemonInCylinder}发恶魔共鸣 ×${overclockFactor.toFixed(1)})`);
+      }
+
+      if (currentBoss.traitCode === 'croupier_double_demon') {
+        chainSynergyMultiplier = Number((chainSynergyMultiplier * 2.0).toFixed(4));
       }
     }
 
@@ -680,29 +943,42 @@ export class RevolverDungeonEngine {
       settlementDurationMs: settlementObj.effectiveDurationMs,
     });
 
-    // 7. Apply Damage to Dungeon Boss & Settle Floor Clear
+    // 7. Apply Damage to Dungeon Boss & Settle Floor Clear / Overtime Boss Counter-Attack
     this.enemyHp = Math.max(0, this.enemyHp - this.lastTurnBreakdown.totalDamage);
 
     if (this.enemyHp <= 0) {
       const clearedFloor = this.economy.wave;
       settleWaveClear(this.economy, this.economy.pullsRemaining, clearedFloor);
+      this.ammoBelt = this._generateAmmoBelt();
+      this.selectedChamberIndex = null;
+      this._lastBeltLoaded = null;
 
-      if (this.economy.wave <= BOSSES.length) {
+      if (clearedFloor === BOSSES.length && !this.endlessMode) {
+        this.economy.wave = BOSSES.length;
+        this.victory = true;
+        this.enemyHp = 0;
+        this.economy.pendingRelicDraft = null;
+      } else {
         const nextBoss = getBossForFloor(this.economy.wave);
         this.enemyName = nextBoss.name;
         this.enemyMaxHp = nextBoss.maxHp;
         this.enemyHp = nextBoss.maxHp;
-      } else {
-        this.economy.wave = BOSSES.length;
-        this.victory = true;
-        this.enemyHp = 0;
+        startRelicDraft(this.economy, 3, this.prng);
       }
 
       this.bus?.emit('wave:clear', {
         floorCleared: clearedFloor,
         nextFloor: this.economy.wave,
         settlement: this.economy.lastSettlement,
+        pendingRelicDraft: this.economy.pendingRelicDraft,
       });
+    } else if (wasOvertime) {
+      const counterDmg = Math.max(10, sanitizeNumber(currentBoss.counterAttack, 16));
+      this.playerHp = safeClamp(this.playerHp - counterDmg, 0, this.playerMaxHp);
+      if (this.playerHp <= 0) {
+        this.playerHp = 0;
+        this.gameOver = true;
+      }
     }
 
     this._recalculateOdds();
@@ -723,6 +999,17 @@ export class RevolverDungeonEngine {
   }
 
   getState() {
+    const boss = getBossForFloor(this.economy.wave);
+    const ownedRelics = Array.isArray(this.economy.relics)
+      ? this.economy.relics.map((r) =>
+          r && typeof r === 'object' ? { ...r } : { id: String(r), name: String(r) }
+        )
+      : [];
+    const pendingRelicDraft =
+      Array.isArray(this.economy.pendingRelicDraft) && this.economy.pendingRelicDraft.length > 0
+        ? this.economy.pendingRelicDraft.map((r) => ({ ...r }))
+        : null;
+
     return {
       schemeId: this.id,
       id: this.id,
@@ -741,8 +1028,16 @@ export class RevolverDungeonEngine {
       enemyName: this.enemyName,
       enemyHp: this.enemyHp,
       enemyMaxHp: this.enemyMaxHp,
+      boss: {
+        ...boss,
+        hp: this.enemyHp,
+        maxHp: this.enemyMaxHp,
+        enemyMaxHp: this.enemyMaxHp,
+      },
       activeChamberIndex: this.activeChamberIndex,
+      selectedChamberIndex: this.selectedChamberIndex,
       chambers: this.chambers.map((c) => ({ ...c })),
+      ammoBelt: (this.ammoBelt || []).map((b) => ({ ...b })),
       backfireRisk: this.backfireRisk,
       hitOdds: this.hitOdds,
       chainOdds: this.chainOdds,
@@ -760,8 +1055,12 @@ export class RevolverDungeonEngine {
         triggeredSynergies: [...(this.lastTurnBreakdown.triggeredSynergies || [])],
       },
       relics: [...(this.economy.relics || [])],
+      ownedRelics,
+      pendingRelicDraft,
       lastSettlement: this.economy.lastSettlement ? { ...this.economy.lastSettlement } : null,
       victory: this.victory,
+      gameOver: this.gameOver,
+      endlessMode: Boolean(this.endlessMode || this.economy.endlessMode),
     };
   }
 }

@@ -3,38 +3,102 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="Slotbound Minimalist Dopamine Lab — 拉杆即结算、连线即秒杀的五大极简街机暗黑衍生原型与实时游戏设计文档中心。"
+  />
   <title>Slotbound Minimalist Dopamine Lab — 《Slotbound》极简爽游街机大厅</title>
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23120e0c' stroke='%23c89b3c' stroke-width='4'/%3E%3Cpolygon points='32,10 40,26 56,28 44,40 47,56 32,48 17,56 20,40 8,28 24,26' fill='%23f3cf7a' stroke='%23ef476f' stroke-width='2'/%3E%3Ccircle cx='32' cy='34' r='7' fill='%23ef476f'/%3E%3C/svg%3E"
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&amp;family=Cinzel:wght@700;900&amp;family=JetBrains+Mono:wght@600;700;800&amp;family=Noto+Sans+SC:wght@500;700;900&amp;display=swap"
+  />
   <link rel="stylesheet" href="./src/styles/main.css" />
   <link rel="stylesheet" href="./src/styles/animations.css" />
 </head>
 <body>
   <div id="app" class="arcade-shell" data-testid="arcade-shell">
+    <input
+      type="checkbox"
+      id="sandbox-drawer-toggle"
+      class="sandbox-drawer-checkbox"
+      aria-label="展开或收起实验室沙盒抽屉"
+    />
+
     <header class="arcade-nav" data-testid="arcade-nav">
       <div class="arcade-brand">
-        <h1>🎰 SLOTBOUND DOPAMINE LAB</h1>
-        <span class="arcade-subtitle">拉杆即结算 · 连线即秒杀 · 15秒极简爽游衍生套件</span>
+        <svg class="brand-crest-svg" viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">
+          <rect x="2" y="2" width="28" height="28" rx="7" fill="#1c1510" stroke="#c89b3c" stroke-width="2" />
+          <polygon points="16,6 20,13 27,14 21.5,19.5 23,27 16,23 9,27 10.5,19.5 5,14 12,13" fill="#f3cf7a" />
+          <circle cx="16" cy="16.5" r="3.5" fill="#ef476f" />
+        </svg>
+        <div class="arcade-brand-text">
+          <h1>SLOTBOUND</h1>
+          <span class="arcade-subtitle">极简爽游实验室 · 拉杆即结算</span>
+        </div>
       </div>
-      <nav class="arcade-nav-tabs" role="tablist">
+
+      <nav class="arcade-nav-tabs" role="tablist" aria-label="游戏方案与实验室切换">
         <button type="button" class="nav-tab-btn active" data-testid="nav-scheme-1" data-scheme-id="devour-reels">
-          👄 吞噬转轮 Devour Reels
+          <svg class="nav-tab-svg" viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+            <circle cx="10" cy="10" r="8" fill="#2a1115" stroke="#f77f00" stroke-width="1.8" />
+            <polygon points="6,7 8.5,10 11,7 13.5,10 15,7 14,14 6,14" fill="#f3cf7a" />
+          </svg>
+          <span>吞噬转轮</span>
         </button>
         <button type="button" class="nav-tab-btn" data-testid="nav-scheme-2" data-scheme-id="revolver-dungeon">
-          🔫 左轮地牢 Revolver Dungeon
+          <svg class="nav-tab-svg" viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+            <circle cx="10" cy="10" r="8" fill="#1c1612" stroke="#c89b3c" stroke-width="1.8" />
+            <circle cx="10" cy="5.2" r="1.6" fill="#ef476f" />
+            <circle cx="14.2" cy="12.4" r="1.6" fill="#f3cf7a" />
+            <circle cx="5.8" cy="12.4" r="1.6" fill="#f3cf7a" />
+          </svg>
+          <span>左轮地牢</span>
         </button>
         <button type="button" class="nav-tab-btn" data-testid="nav-scheme-3" data-scheme-id="jackpot-td">
-          ⚡ 黄金矿工防线 Jackpot TD
+          <svg class="nav-tab-svg" viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+            <polygon points="11,2 4,11 10,11 8,18 16,9 10,9" fill="#ffd166" stroke="#c89b3c" stroke-width="1" />
+          </svg>
+          <span>黄金防线</span>
         </button>
         <button type="button" class="nav-tab-btn" data-testid="nav-scheme-4" data-scheme-id="sigil-pachinko">
-          🔮 咒印弹珠台 Sigil Pachinko
+          <svg class="nav-tab-svg" viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+            <circle cx="10" cy="10" r="7.5" fill="#132620" stroke="#06d6a0" stroke-width="1.8" />
+            <polygon points="10,4.5 14.5,10 10,15.5 5.5,10" fill="#2ec4f1" />
+          </svg>
+          <span>咒印弹珠</span>
         </button>
         <button type="button" class="nav-tab-btn" data-testid="nav-scheme-5" data-scheme-id="abyssal-grid">
-          ♟️ 深渊矩阵 Abyssal Grid
+          <svg class="nav-tab-svg" viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+            <rect x="3" y="3" width="6" height="6" rx="1.2" fill="#c89b3c" />
+            <rect x="11" y="3" width="6" height="6" rx="1.2" fill="#2a211b" stroke="#c89b3c" stroke-width="1.2" />
+            <rect x="3" y="11" width="6" height="6" rx="1.2" fill="#2a211b" stroke="#c89b3c" stroke-width="1.2" />
+            <rect x="11" y="11" width="6" height="6" rx="1.2" fill="#ef476f" />
+          </svg>
+          <span>深渊矩阵</span>
         </button>
-        <button type="button" class="nav-tab-btn" data-testid="nav-gdd-viewer" data-scheme-id="gdd">
-          📜 设计文档中心 GDD Viewer
+        <span class="nav-divider" aria-hidden="true"></span>
+        <button type="button" class="nav-tab-btn nav-utility-btn" data-testid="nav-gdd-viewer" data-scheme-id="gdd">
+          <svg class="nav-tab-svg" viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+            <rect x="4" y="2.5" width="12" height="15" rx="2" fill="#261e17" stroke="#f3cf7a" stroke-width="1.5" />
+            <line x1="7" y1="7" x2="13" y2="7" stroke="#f3cf7a" stroke-width="1.5" />
+            <line x1="7" y1="10.5" x2="13" y2="10.5" stroke="#c89b3c" stroke-width="1.5" />
+            <line x1="7" y1="14" x2="11" y2="14" stroke="#c89b3c" stroke-width="1.5" />
+          </svg>
+          <span>设计文档</span>
         </button>
-        <button type="button" class="nav-tab-btn" data-testid="nav-audio-lab" data-scheme-id="audio-lab">
-          🎧 音效与数值实验室 Audio Lab
+        <button type="button" class="nav-tab-btn nav-utility-btn" data-testid="nav-audio-lab" data-scheme-id="audio-lab">
+          <svg class="nav-tab-svg" viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+            <polygon points="3,8 7,8 12,4 12,16 7,12 3,12" fill="#f3cf7a" />
+            <path d="M14.5,6.5 C16.5,8.5 16.5,11.5 14.5,13.5" fill="none" stroke="#06d6a0" stroke-width="1.8" />
+          </svg>
+          <span>音效台</span>
         </button>
       </nav>
     </header>
@@ -47,28 +111,38 @@
     </main>
 
     <footer class="sandbox-toolbar" data-testid="sandbox-toolbar">
-      <div class="sandbox-controls-left">
-        <label for="sandbox-seed-input" class="sandbox-label">🎲 确定性种子 (PRNG Seed):</label>
-        <input
-          id="sandbox-seed-input"
-          type="text"
-          class="sandbox-seed-input"
-          data-testid="sandbox-seed-input"
-          value="12345"
-        />
-        <button type="button" class="btn-arcade btn-sandbox-jackpot" data-testid="sandbox-trigger-jackpot">
-          💥 一键触发终极大奖 / Trigger Jackpot
-        </button>
+      <div class="sandbox-drawer-body">
+        <div class="sandbox-controls-left">
+          <label for="sandbox-seed-input" class="sandbox-label">确定性种子 (Seed)</label>
+          <input
+            id="sandbox-seed-input"
+            type="text"
+            class="sandbox-seed-input"
+            data-testid="sandbox-seed-input"
+            value="12345"
+          />
+          <button type="button" class="btn-arcade btn-sandbox-jackpot" data-testid="sandbox-trigger-jackpot">
+            一键终极大奖 / Jackpot
+          </button>
+        </div>
       </div>
-      <div class="sandbox-controls-right">
+
+      <div class="sandbox-controls-right sandbox-bar-always">
         <button
           type="button"
           class="btn-arcade btn-audio-mute"
           data-testid="audio-mute-toggle"
           aria-pressed="false"
         >
-          🔊 音效开启 (Audio ON)
+          音效开启 (Audio ON)
         </button>
+        <label
+          for="sandbox-drawer-toggle"
+          class="btn-arcade btn-sandbox-toggle"
+          data-testid="sandbox-drawer-toggle"
+        >
+          沙盒调试 (Lab)
+        </label>
       </div>
     </footer>
   </div>

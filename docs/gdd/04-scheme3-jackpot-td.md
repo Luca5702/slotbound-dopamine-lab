@@ -119,3 +119,13 @@ flowchart LR
 | `td-interest-ticker` | 实时复利与贪婪连击指示器 | 展示不拉杆时每 2.5s 跳动的 `+20%` 复利倒计时与当前贪婪连击倍率 |
 | `td-base-hp` | 防线基地生命值徽章 | 展示当前防线生命值 `playerHp / 100 HP` |
 | `td-active-combo` | 当前激活快艇牌型与大招横幅 | 实时展示 `对子二星★★`、`三连冰冻 (4.0s)`、`5秒狂暴激光洗地` 或 `五连核弹` |
+
+---
+
+## 6. 第二轮峡谷战场分层渲染与底座锁塔博弈 (`Round 2 Canyon Lane & Pedestal Hold-Lock`)
+
+1. **俯视矿道峡谷分层渲染 (`td-lane-canvas`)**：
+   * 底层 `canvas.td-lane-render-canvas` 采用绝对定位叠底渲染矿车铁轨、`72%` 绝境警戒红区热力带、冰封霜晶滤镜与三层高能等离子狂暴激光束；上层 `.td-lane-track` 错列排布带血条与 `SpriteForge` 图标的实时行军怪物单位 (`.td-enemy-token`)，彻底消除画布与 DOM 节点的堆叠错位。
+2. **点击底座锁塔凑牌机制 (`Interactive Pedestal Locking`)**：
+   * 玩家可直接点击 `td-pedestal-0..4` 锁定最多 **2 座**主力防御塔（`.is-pedestal-locked` 黄铜高亮边框，每锁 1 塔拉杆成本 `+5G`）。在实时 `+20%` 憋利息与怪物压境之间，精准锁住高星 `cryo_prism` 或 `nuke_core` 追梦 **三连冰冻**、**五顺狂暴激光** 与 **Yahtzee 五连核弹**！
+

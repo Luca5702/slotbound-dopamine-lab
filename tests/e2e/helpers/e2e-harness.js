@@ -75,21 +75,31 @@ export async function loadProjectModule(relPath) {
   const baseHref = pathToFileURL(fullPath).href;
   const isMainEntry = /(^|\/)src\/main\.js$/.test(String(relPath));
   const fileUrl = isMainEntry ? `${baseHref}?instance=${++__mainImportSeq}` : baseHref;
-  const mod = await import(fileUrl);
-  if (
-    isMainEntry &&
-    globalThis.window &&
-    !globalThis.window.__SLOTBOUND__ &&
-    !globalThis.window.__SLOTBOUND_TEST__
-  ) {
-    const initFn =
-      mod.initApp ||
-      mod.bootstrap ||
-      mod.mountApp ||
-      (typeof mod.default === 'function' ? mod.default : null);
-    if (typeof initFn === 'function') {
-      await initFn();
+  let mod;
+  try {
+    mod = await import(fileUrl);
+    if (
+      isMainEntry &&
+      globalThis.window &&
+      !globalThis.window.__SLOTBOUND__ &&
+      !globalThis.window.__SLOTBOUND_TEST__
+    ) {
+      const initFn =
+        mod.initApp ||
+        mod.bootstrap ||
+        mod.mountApp ||
+        (typeof mod.default === 'function' ? mod.default : null);
+      if (typeof initFn === 'function') {
+        await initFn();
+      }
     }
+  } catch (err) {
+    if (err?.name === 'AssertionError') {
+      throw err;
+    }
+    assert.fail(
+      `[E2E Module Load Failed] Failed to import ${fullPath}: ${err?.message || String(err)}`
+    );
   }
   return mod;
 }
@@ -362,6 +372,13 @@ export function normalizeGameState(rawState = {}, engine = null) {
   st.playerHp = Number(st.playerHp ?? st.baseHp ?? 100);
   st.enemyHp = Number(st.enemyHp ?? st.bossHp ?? 0);
   st.enemyMaxHp = Number(st.enemyMaxHp ?? st.bossMaxHp ?? st.enemyHp ?? 100);
+  const rawRelics =
+    st.ownedRelics ?? st.relics ?? st.economy?.ownedRelics ?? st.economy?.relics ?? [];
+  const normalizedRelics = Array.isArray(rawRelics) ? [...rawRelics] : [];
+  st.ownedRelics = normalizedRelics;
+  st.relics = Array.isArray(st.relics) ? st.relics : normalizedRelics;
+  st.pendingRelicDraft =
+    st.pendingRelicDraft ?? st.economy?.pendingRelicDraft ?? null;
   return st;
 }
 
@@ -498,6 +515,16 @@ export class MockCanvas2DContext {
   }
   createRadialGradient() {
     return { addColorStop: () => {} };
+  }
+  getImageData(x = 0, y = 0, w = 1, h = 1) {
+    const safeW = Math.max(1, Math.floor(Number(w) || 1));
+    const safeH = Math.max(1, Math.floor(Number(h) || 1));
+    this._record('getImageData', [x, y, safeW, safeH]);
+    return {
+      width: safeW,
+      height: safeH,
+      data: new Uint8ClampedArray(safeW * safeH * 4),
+    };
   }
 }
 
@@ -1169,8 +1196,12 @@ export function installMockBrowserEnv() {
     };
   };
 
+  const prevNavigatorDesc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  const rafTimers = new Set();
+
   const mockWindow = {
     document: mockDocument,
+    navigator: { userAgent: 'SlotboundE2EMockBrowser' },
     localStorage: mockLocalStorage,
     AudioContext: MockAudioContext,
     webkitAudioContext: MockAudioContext,
@@ -1178,8 +1209,20 @@ export function installMockBrowserEnv() {
     innerWidth: 1280,
     innerHeight: 800,
     devicePixelRatio: 1,
-    requestAnimationFrame: (cb) => setTimeout(() => cb(performance.now()), 16),
-    cancelAnimationFrame: (id) => clearTimeout(id),
+    scrollTo: () => {},
+    requestAnimationFrame: (cb) => {
+      const id = setTimeout(() => {
+        rafTimers.delete(id);
+        cb(performance.now());
+      }, 16);
+      id?.unref?.();
+      rafTimers.add(id);
+      return id;
+    },
+    cancelAnimationFrame: (id) => {
+      rafTimers.delete(id);
+      clearTimeout(id);
+    },
     fetch: mockFetch,
     addEventListener(type, fn) {
       if (!winListeners.has(type)) winListeners.set(type, new Set());
@@ -1203,6 +1246,11 @@ export function installMockBrowserEnv() {
 
   globalThis.window = mockWindow;
   globalThis.document = mockDocument;
+  Object.defineProperty(globalThis, 'navigator', {
+    value: mockWindow.navigator,
+    configurable: true,
+    writable: true,
+  });
   globalThis.localStorage = mockLocalStorage;
   globalThis.AudioContext = MockAudioContext;
   globalThis.webkitAudioContext = MockAudioContext;
@@ -1246,7 +1294,16 @@ export function installMockBrowserEnv() {
       return container;
     },
     cleanup() {
+      for (const id of rafTimers) {
+        clearTimeout(id);
+      }
+      rafTimers.clear();
       mockDocument.body.replaceChildren();
+      if (prevNavigatorDesc) {
+        try {
+          Object.defineProperty(globalThis, 'navigator', prevNavigatorDesc);
+        } catch {}
+      }
     },
   };
 }
@@ -1336,18 +1393,45 @@ function sleep(ms) {
 }
 
 /**
- * Launches Headless Chromium against `index.html`, connects via native WebSocket CDP,
- * executes `fn(browser)`, and guarantees cleanup of temporary user-data-dir and processes.
+ * Creates a reusable Headless Chromium CDP session against `index.html` with pre-boot
+ * static HTTP response/404 recording, CDP Runtime/Network/Page telemetry, dynamic
+ * viewport emulation (`setViewport`), and guaranteed idempotent cleanup (`close()`).
  */
-export async function withHeadlessBrowser(fn, options = {}) {
+export async function createHeadlessBrowserSession(options = {}) {
   assert.ok(
     fileExists('index.html'),
     `[E2E Missing File] Expected /home/antigravity/index.html for Headless Chromium E2E test`
   );
   const serverInfo = await startStaticServer();
+  const httpResponses = [];
+  const http404s = [];
+  const httpErrors = [];
+  serverInfo.server?.on?.('request', (req, res) => {
+    res.on('finish', () => {
+      const status = Number(res.statusCode || 0);
+      const entry = {
+        method: String(req.method || 'GET'),
+        url: String(req.url || '/'),
+        status,
+        statusCode: status,
+      };
+      httpResponses.push(entry);
+      if (status === 404) http404s.push(entry);
+      if (status >= 400) httpErrors.push(entry);
+    });
+  });
+
+  fs.mkdirSync(os.tmpdir(), { recursive: true });
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slotbound-e2e-'));
+  let extraShortTmpDir = null;
+  if (tmpDir.length > 58) {
+    fs.mkdirSync('/tmp', { recursive: true });
+    extraShortTmpDir = fs.mkdtempSync('/tmp/sb-');
+  }
+  const chromiumTmpDir = extraShortTmpDir || tmpDir;
   let proc = null;
   let ws = null;
+  let closed = false;
 
   const killChromiumGroup = () => {
     if (!proc) return;
@@ -1366,27 +1450,63 @@ export async function withHeadlessBrowser(fn, options = {}) {
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 30 });
     } catch {}
+    if (extraShortTmpDir) {
+      try {
+        fs.rmSync(extraShortTmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 30 });
+      } catch {}
+    }
   };
   process.once('exit', cleanupTmpSync);
 
+  const closeSession = async () => {
+    if (closed) return;
+    closed = true;
+    try {
+      if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+    } catch {}
+    killChromiumGroup();
+    if (proc && proc.exitCode === null && proc.signalCode === null) {
+      await new Promise((resolve) => {
+        const t = setTimeout(resolve, 500);
+        proc.once('exit', () => {
+          clearTimeout(t);
+          resolve();
+        });
+      });
+    }
+    await sleep(40);
+    cleanupTmpSync();
+    process.removeListener('exit', cleanupTmpSync);
+    try {
+      await serverInfo.close();
+    } catch {}
+  };
+
   try {
     const targetUrl = `${serverInfo.baseUrl}${options.path || '/index.html'}`;
-    proc = spawn(
-      '/usr/bin/chromium',
-      [
-        '--headless',
-        '--no-sandbox',
-        '--disable-gpu',
-        '--disable-dev-shm-usage',
-        '--disable-background-timer-throttling',
-        '--disable-renderer-backgrounding',
-        '--autoplay-policy=no-user-gesture-required',
-        `--user-data-dir=${tmpDir}`,
-        '--remote-debugging-port=0',
-        targetUrl,
-      ],
-      { stdio: ['ignore', 'pipe', 'pipe'], detached: true }
-    );
+    const chromiumArgs = [
+      '--headless',
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--disable-background-timer-throttling',
+      '--disable-renderer-backgrounding',
+      '--autoplay-policy=no-user-gesture-required',
+      `--user-data-dir=${tmpDir}`,
+      '--remote-debugging-port=0',
+    ];
+    if (options.viewport && typeof options.viewport === 'object') {
+      const vw = Math.max(200, Math.floor(Number(options.viewport.width) || 1440));
+      const vh = Math.max(200, Math.floor(Number(options.viewport.height) || 900));
+      chromiumArgs.push(`--window-size=${vw},${vh}`);
+    }
+    chromiumArgs.push(targetUrl);
+
+    proc = spawn('/usr/bin/chromium', chromiumArgs, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      detached: true,
+      env: { ...process.env, TMPDIR: chromiumTmpDir },
+    });
 
     const wsEndpoint = await new Promise((resolve, reject) => {
       let stderrBuf = '';
@@ -1446,6 +1566,9 @@ export async function withHeadlessBrowser(fn, options = {}) {
     const pending = new Map();
     const consoleErrors = [];
     const pageErrors = [];
+    const networkResponses = [];
+    const network404s = [];
+    const networkErrors = [];
 
     ws.addEventListener('message', (evt) => {
       try {
@@ -1457,7 +1580,9 @@ export async function withHeadlessBrowser(fn, options = {}) {
           else resolve(msg.result);
         } else if (msg.method === 'Runtime.exceptionThrown') {
           pageErrors.push(
-            msg.params?.exceptionDetails?.text || 'Runtime.exceptionThrown'
+            msg.params?.exceptionDetails?.exception?.description ||
+              msg.params?.exceptionDetails?.text ||
+              'Runtime.exceptionThrown'
           );
         } else if (
           msg.method === 'Runtime.consoleAPICalled' &&
@@ -1466,6 +1591,23 @@ export async function withHeadlessBrowser(fn, options = {}) {
           consoleErrors.push(
             (msg.params.args || []).map((a) => a.value || a.description || '').join(' ')
           );
+        } else if (msg.method === 'Network.responseReceived') {
+          const resp = msg.params?.response;
+          if (resp) {
+            const url = String(resp.url || '');
+            const status = Number(resp.status || 0);
+            const entry = {
+              url,
+              status,
+              mimeType: String(resp.mimeType || ''),
+              type: String(msg.params?.type || ''),
+            };
+            networkResponses.push(entry);
+            if (url.startsWith(serverInfo.baseUrl)) {
+              if (status === 404) network404s.push(entry);
+              if (status >= 400) networkErrors.push(entry);
+            }
+          }
         }
       } catch {}
     });
@@ -1478,6 +1620,21 @@ export async function withHeadlessBrowser(fn, options = {}) {
       });
 
     await sendCDP('Runtime.enable');
+    await sendCDP('Network.enable');
+    await sendCDP('Page.enable');
+
+    if (options.viewport && typeof options.viewport === 'object') {
+      const vw = Math.max(200, Math.floor(Number(options.viewport.width) || 1440));
+      const vh = Math.max(200, Math.floor(Number(options.viewport.height) || 900));
+      const vMobile = Boolean(options.viewport.mobile ?? vw <= 500);
+      const vDpr = Number(options.viewport.deviceScaleFactor ?? (vMobile ? 2 : 1));
+      await sendCDP('Emulation.setDeviceMetricsOverride', {
+        width: vw,
+        height: vh,
+        deviceScaleFactor: vDpr,
+        mobile: vMobile,
+      });
+    }
 
     const evalInPage = async (expression) => {
       const wrapped = `(async () => { return (${expression}); })()`;
@@ -1496,30 +1653,77 @@ export async function withHeadlessBrowser(fn, options = {}) {
       return res?.result?.value;
     };
 
-    // Poll from Node side until document.readyState === 'complete' and bridge is ready
-    let ready = false;
-    for (let i = 0; i < 60; i++) {
-      try {
-        const isReady = await evalInPage(
-          `document.readyState === 'complete' && Boolean(window.__SLOTBOUND__ || window.__SLOTBOUND_TEST__)`
-        );
-        if (isReady) {
-          ready = true;
-          break;
-        }
-      } catch {}
-      await sleep(80);
-    }
-    assert.ok(
-      ready,
-      `Timed out waiting for index.html and window.__SLOTBOUND__ bridge in Headless Chromium. Page errors: ${pageErrors.join('; ')}`
-    );
+    const waitForAppReady = async (contextLabel = 'index.html') => {
+      let ready = false;
+      for (let i = 0; i < 60; i++) {
+        try {
+          const isReady = await evalInPage(
+            `document.readyState === 'complete' && Boolean(window.__SLOTBOUND__ || window.__SLOTBOUND_TEST__)`
+          );
+          if (isReady) {
+            ready = true;
+            break;
+          }
+        } catch {}
+        await sleep(80);
+      }
+      assert.ok(
+        ready,
+        `Timed out waiting for ${contextLabel} and window.__SLOTBOUND__ bridge in Headless Chromium. Page errors: ${pageErrors.join('; ')}`
+      );
+    };
+
+    await waitForAppReady('index.html');
 
     const browser = {
       baseUrl: serverInfo.baseUrl,
       consoleErrors,
       pageErrors,
+      httpResponses,
+      http404s,
+      httpErrors,
+      networkResponses,
+      network404s,
+      networkErrors,
+      cdp: sendCDP,
+      sendCDP,
       eval: evalInPage,
+      async setViewport(widthOrObj, height, opts = {}) {
+        let w;
+        let h;
+        let cfg;
+        if (widthOrObj && typeof widthOrObj === 'object') {
+          cfg = widthOrObj;
+          w = Math.max(200, Math.floor(Number(cfg.width) || 1440));
+          h = Math.max(200, Math.floor(Number(cfg.height) || 900));
+        } else {
+          cfg = opts || {};
+          w = Math.max(200, Math.floor(Number(widthOrObj) || 1440));
+          h = Math.max(200, Math.floor(Number(height) || 900));
+        }
+        const mobile = Boolean(cfg.mobile ?? w <= 500);
+        const deviceScaleFactor = Number(cfg.deviceScaleFactor ?? (mobile ? 2 : 1));
+        await sendCDP('Emulation.setDeviceMetricsOverride', {
+          width: w,
+          height: h,
+          deviceScaleFactor,
+          mobile,
+        });
+        await evalInPage(`new Promise((resolve) => {
+          window.scrollTo(0, 0);
+          window.dispatchEvent(new Event('resize'));
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)));
+        })`);
+        return { width: w, height: h, deviceScaleFactor, mobile };
+      },
+      async navigate(relPath = '/') {
+        const cleanPath = String(relPath || '/').startsWith('/')
+          ? String(relPath || '/')
+          : `/${relPath}`;
+        await sendCDP('Page.navigate', { url: `${serverInfo.baseUrl}${cleanPath}` });
+        await waitForAppReady(cleanPath);
+        return true;
+      },
       async hasTestId(testId) {
         return Boolean(
           await evalInPage(
@@ -1552,28 +1756,25 @@ export async function withHeadlessBrowser(fn, options = {}) {
         );
         return await browser.getBridgeState();
       },
+      close: closeSession,
     };
 
+    return browser;
+  } catch (err) {
+    await closeSession();
+    throw err;
+  }
+}
+
+/**
+ * Launches Headless Chromium against `index.html`, connects via native WebSocket CDP,
+ * executes `fn(browser)`, and guarantees cleanup of temporary user-data-dir and processes.
+ */
+export async function withHeadlessBrowser(fn, options = {}) {
+  const browser = await createHeadlessBrowserSession(options);
+  try {
     return await fn(browser);
   } finally {
-    try {
-      if (ws && ws.readyState === WebSocket.OPEN) ws.close();
-    } catch {}
-    killChromiumGroup();
-    if (proc && proc.exitCode === null && proc.signalCode === null) {
-      await new Promise((resolve) => {
-        const t = setTimeout(resolve, 500);
-        proc.once('exit', () => {
-          clearTimeout(t);
-          resolve();
-        });
-      });
-    }
-    await sleep(40);
-    cleanupTmpSync();
-    process.removeListener('exit', cleanupTmpSync);
-    try {
-      await serverInfo.close();
-    } catch {}
+    await browser.close();
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Scheme 2: 《左轮地牢》(Revolver Dungeon) Configuration & Catalog (`F-S2-01`, `F-S2-02`, `F-S2-03`)
+ * Scheme 2: 《左轮地牢》(Revolver Dungeon) Configuration & Catalog (`F-S2-01`, `F-S2-02`, `F-S2-03`, `F-R2-04`)
  * Zero DOM dependencies — runs in both Browser and Node.js (`node --test`).
  */
 
@@ -17,6 +17,7 @@ export const BULLET_LIST = Object.freeze([
     tier: 0,
     basePoints: 0,
     mult: 1.0,
+    cost: 0,
     defaultWeight: 0,
     description: '扣中空仓获得孤胆赌徒加成 (下发伤害×2.0 + 15G)；每个空仓为实弹提供孤胆轮盘倍率加成。',
   }),
@@ -30,6 +31,7 @@ export const BULLET_LIST = Object.freeze([
     tier: 1,
     basePoints: 25,
     mult: 1.2,
+    cost: 15,
     defaultWeight: 26,
     description: '稳定可靠的基础实弹；也是深渊寄生弹最优质的吞噬口粮。',
   }),
@@ -43,6 +45,7 @@ export const BULLET_LIST = Object.freeze([
     tier: 2,
     basePoints: 40,
     mult: 1.8,
+    cost: 30,
     healAmount: 20,
     overhealMult: 2.5,
     defaultWeight: 14,
@@ -58,6 +61,7 @@ export const BULLET_LIST = Object.freeze([
     tier: 2,
     basePoints: 35,
     mult: 2.5,
+    cost: 28,
     defaultWeight: 14,
     description: '喷射扇形弹幕，并同时引燃左右相邻两个弹仓 (i-1, i+1) 协同开火。',
   }),
@@ -71,6 +75,7 @@ export const BULLET_LIST = Object.freeze([
     tier: 3,
     basePoints: 60,
     mult: 3.0,
+    cost: 42,
     devourStacksPerPrey: 2,
     devourDamageFactor: 2.0,
     defaultWeight: 12,
@@ -86,6 +91,7 @@ export const BULLET_LIST = Object.freeze([
     tier: 2,
     basePoints: 30,
     mult: 2.0,
+    cost: 25,
     defaultWeight: 11,
     description: '强化顺时针下一格弹仓 +100% 伤害；“火药+引信+重锤”六连发清空弹巢组件 A。',
   }),
@@ -99,6 +105,7 @@ export const BULLET_LIST = Object.freeze([
     tier: 2,
     basePoints: 30,
     mult: 2.2,
+    cost: 25,
     defaultWeight: 11,
     description: '串联前后相邻弹仓协同击发；“火药+引信+重锤”六连发清空弹巢组件 B。',
   }),
@@ -112,6 +119,7 @@ export const BULLET_LIST = Object.freeze([
     tier: 3,
     basePoints: 90,
     mult: 3.5,
+    cost: 45,
     isHeavy: true,
     defaultWeight: 7,
     description: '重型穿甲弹；“火药+引信+重锤”六连发清空弹巢组件 C。',
@@ -126,6 +134,7 @@ export const BULLET_LIST = Object.freeze([
     tier: 4,
     basePoints: 220,
     mult: 8.0,
+    cost: 55,
     backfireChance: 0.25,
     backfireDamage: 20,
     bloodRageMult: 3.0,
@@ -157,88 +166,104 @@ export const BOSSES = Object.freeze([
     wave: 1,
     id: 'dungeon_gate_skeleton',
     name: '地牢看守骸骨 (Dungeon Gate Skeleton)',
+    zhName: '地牢看守骸骨',
     hp: 150,
     maxHp: 150,
     enemyMaxHp: 150,
     counterAttack: 8,
     trait: '15秒极速教学关',
+    traitCode: 'tutorial_target',
   }),
   Object.freeze({
     floor: 2,
     wave: 2,
     id: 'twin_headed_hound',
     name: '双头猎犬 (Twin-Headed Hound)',
+    zhName: '双头猎犬',
     hp: 780,
     maxHp: 780,
     enemyMaxHp: 780,
     counterAttack: 12,
-    trait: '闪避空仓时反扑',
+    trait: '闪避空仓时反扑 (-12 HP)',
+    traitCode: 'dry_click_pounce',
   }),
   Object.freeze({
     floor: 3,
     wave: 3,
     id: 'iron_maiden_executioner',
     name: '铁处女行刑官 (Iron Maiden Executioner)',
+    zhName: '铁处女行刑官',
     hp: 4200,
     maxHp: 4200,
     enemyMaxHp: 4200,
     counterAttack: 16,
     trait: '需寄生弹或重锤破甲',
+    traitCode: 'iron_armor',
   }),
   Object.freeze({
     floor: 4,
     wave: 4,
     id: 'vampire_archduke',
     name: '血族大公爵 (Vampire Archduke)',
+    zhName: '血族大公爵',
     hp: 28000,
     maxHp: 28000,
     enemyMaxHp: 28000,
     counterAttack: 20,
-    trait: '吸血弹克制',
+    trait: '吸血弹克制 (×1.5伤害)',
+    traitCode: 'vampire_weakness',
   }),
   Object.freeze({
     floor: 5,
     wave: 5,
     id: 'powder_mad_alchemist',
     name: '黑火药炼金狂人 (Powder Mad Alchemist)',
+    zhName: '黑火药炼金狂人',
     hp: 210000,
     maxHp: 210000,
     enemyMaxHp: 210000,
     counterAttack: 25,
     trait: '鼓励火药+引信+重锤连发',
+    traitCode: 'powder_vulnerability',
   }),
   Object.freeze({
     floor: 6,
     wave: 6,
     id: 'abyssal_croupier',
     name: '深渊赌局荷官 (Abyssal Croupier)',
+    zhName: '深渊赌局荷官',
     hp: 1800000,
     maxHp: 1800000,
     enemyMaxHp: 1800000,
     counterAttack: 32,
-    trait: '恶魔弹倍率翻倍',
+    trait: '恶魔弹倍率翻倍 (×2.0)',
+    traitCode: 'croupier_double_demon',
   }),
   Object.freeze({
     floor: 7,
     wave: 7,
     id: 'six_armed_hell_general',
     name: '炼狱六臂魔将 (Six-Armed Hell General)',
+    zhName: '炼狱六臂魔将',
     hp: 14500000,
     maxHp: 14500000,
     enemyMaxHp: 14500000,
     counterAttack: 40,
     trait: '千万级高压地牢',
+    traitCode: 'hell_pressure',
   }),
   Object.freeze({
     floor: 8,
     wave: 8,
     id: 'revolver_archfiend_azazel',
     name: '深渊左轮魔神·阿撒兹勒 (Revolver Archfiend Azazel)',
+    zhName: '深渊左轮魔神·阿撒兹勒',
     hp: 95000000,
     maxHp: 95000000,
     enemyMaxHp: 95000000,
     counterAttack: 50,
     trait: '9500万终极轮盘决战',
+    traitCode: 'archfiend_finale',
   }),
 ]);
 
@@ -247,8 +272,28 @@ export const FLOORS = BOSSES;
 export const WAVES = BOSSES;
 
 export function getBossForFloor(floor = 1) {
-  const idx = Math.max(0, Math.min(BOSSES.length - 1, Math.floor(Number(floor) || 1) - 1));
-  return { ...BOSSES[idx] };
+  const f = Math.max(1, Math.floor(Number(floor) || 1));
+  if (f <= BOSSES.length) {
+    return { ...BOSSES[f - 1] };
+  }
+  const base8 = BOSSES[BOSSES.length - 1];
+  const endlessHp = Math.min(
+    Number.MAX_SAFE_INTEGER,
+    Math.floor(base8.maxHp * Math.pow(6.5, f - BOSSES.length))
+  );
+  return {
+    ...base8,
+    floor: f,
+    wave: f,
+    id: 'revolver_archfiend_azazel',
+    name: `无尽左轮魔神 W${f} (Endless Archfiend)`,
+    zhName: `无尽左轮魔神 W${f}`,
+    hp: endlessHp,
+    maxHp: endlessHp,
+    enemyMaxHp: endlessHp,
+    counterAttack: base8.counterAttack + (f - BOSSES.length) * 15,
+    trait: `无尽冲分地牢 W${f} · 指数级生命膨胀`,
+  };
 }
 
 export default {

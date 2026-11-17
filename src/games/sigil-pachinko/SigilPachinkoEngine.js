@@ -1,12 +1,13 @@
 /**
- * Scheme 4: 《咒印弹珠台》(Sigil Pachinko / Alchemical Cascade) — Deterministic Engine (`F-S4-01`)
+ * Scheme 4: 《咒印弹珠台》(Sigil Pachinko / Alchemical Cascade) — Deterministic Engine (`F-S4-01`, `F-R2-06`)
  * Implements:
- *  - Top 1×3 Alchemical Orb Spawner
- *  - 24-Peg Elemental Cascade Arena (4 staggered rows × 6 pegs)
+ *  - Top 1×3 Alchemical Orb Spawner with Launch Aim (`left` / `center` / `right`)
+ *  - 24-Peg Elemental Cascade Arena (4 staggered rows × 6 pegs) with 35G Sigil Peg Upgrade
  *  - Mid-Air Collision Auto-Devour (`<1000ms` orb fusion when higher-tier orb collides with lower-tier orb)
  *  - Ascending Pitch Peg Bounce Chimes (`523.25 * 2^(step/12) Hz`)
  *  - Bottom 5 Multiplier Crucibles (`×2`, `×5`, `×25 JACKPOT`, `×5`, `×2`)
  *  - Chaos Tilt (`performSecondaryAction`) lateral nudge & multiplier boost
+ *  - Non-blocking Post-Wave 3-Card Relic Draft, Wave 8 Victory & Wave 9+ Endless Mode
  *
  * Zero DOM dependencies — runs natively in Node (`node --test`) and Browser.
  */
@@ -14,11 +15,22 @@
 import { createPRNG } from '../../core/PRNG.js';
 import { sanitizeNumber, safeClamp } from '../../core/BigNumber.js';
 import { calculateSpinDamage } from '../../core/ScoreFormula.js';
-import { createEconomyState, consumePull, settleWaveClear } from '../../core/EconomyEngine.js';
+import {
+  createEconomyState,
+  consumePull,
+  settleWaveClear,
+  startRelicDraft,
+  resolvePendingRelicDraft,
+  enterEndlessMode,
+  getRelicModifiers,
+  spendEconomyGold,
+} from '../../core/EconomyEngine.js';
 import { createEventBus } from '../../core/EventBus.js';
 import { createFlowTracker } from '../../core/FlowTracker.js';
 import {
   ARENA_BOUNDS,
+  PEG_UPGRADE_COST,
+  AIM_MODES,
   ORB_LIST,
   ORB_MAP,
   ORB_WEIGHTS,
@@ -57,10 +69,16 @@ export class SigilPachinkoEngine {
     const startWave = Math.max(1, Math.floor(sanitizeNumber(options.wave, 1)));
     const boss = getBossForWave(startWave);
     this.currentBoss = boss;
-    this.enemyMaxHp = boss.maxHp;
-    this.enemyHp = boss.hp;
+    this.enemyMaxHp = options.enemyMaxHp !== undefined
+      ? Math.max(1, sanitizeNumber(options.enemyMaxHp, boss.maxHp))
+      : boss.maxHp;
+    this.enemyHp = options.enemyHp !== undefined
+      ? Math.max(0, sanitizeNumber(options.enemyHp, boss.hp))
+      : boss.hp;
     this.playerHp = 100;
     this.playerMaxHp = 100;
+    this.victory = false;
+    this.gameOver = false;
 
     this.economy = createEconomyState({
       wave: startWave,
@@ -76,6 +94,8 @@ export class SigilPachinkoEngine {
       ...peg,
       hitCount: 0,
       active: false,
+      level: 1,
+      upgraded: false,
     }));
 
     this.crucibles = DEFAULT_CRUCIBLES.map((c) => ({
@@ -84,6 +104,7 @@ export class SigilPachinkoEngine {
       capturedOrbs: [],
     }));
 
+    this.launchAim = 'center';
     this.spawner = DEFAULT_SPAWNER_IDS.map((id, idx) => this._createSpawnerSlot(idx, id));
     this.orbs = [];
     this.lastDevourEvents = [];
@@ -102,7 +123,7 @@ export class SigilPachinkoEngine {
       devourStacks: 0,
       chainSynergyMultiplier: 1.0,
       greedMultiplier: this.economy.greedMultiplier,
-      comboName: 'READY TO DROP ORBS',
+      comboName: '待命：释放炼金法球',
       triggeredSynergies: [],
       settlementDurationMs: 0,
     });
@@ -113,6 +134,8 @@ export class SigilPachinkoEngine {
   _createSpawnerSlot(index, rawOrbId) {
     const id = sanitizeOrbId(rawOrbId);
     const meta = ORB_MAP[id] || ORB_LIST[0];
+    const aimSpec = AIM_MODES[this.launchAim] || AIM_MODES.center;
+    const baseX = SPAWNER_X_COORDS[index] || 400;
     return {
       index,
       id: meta.id,
@@ -124,10 +147,66 @@ export class SigilPachinkoEngine {
       basePoints: meta.basePoints,
       mult: meta.mult,
       goldBonus: meta.goldBonus,
-      x: SPAWNER_X_COORDS[index] || 400,
+      x: safeClamp(baseX + aimSpec.shiftX, ARENA_BOUNDS.minX + 20, ARENA_BOUNDS.maxX - 20),
       y: ARENA_BOUNDS.spawnerY,
       color: meta.color,
     };
+  }
+
+  setLaunchAim(rawAim = 'center') {
+    const normalized = String(rawAim || 'center').trim().toLowerCase();
+    if (normalized === 'left' || normalized === 'center' || normalized === 'right') {
+      this.launchAim = normalized;
+    } else {
+      this.launchAim = 'center';
+    }
+    this.spawner = this.spawner.map((slot, idx) => this._createSpawnerSlot(idx, slot.orbId));
+    return this.getState();
+  }
+
+  /**
+   * 35G Sigil Peg Upgrade (`T6-26`): spends 35 Gold to upgrade an arena peg into a high-yield sigil peg.
+   */
+  upgradeRandomPeg(pegIndex = null) {
+    const paid = spendEconomyGold(this.economy, PEG_UPGRADE_COST);
+    if (!paid.ok) {
+      return this.getState();
+    }
+
+    let target = null;
+    if (Number.isInteger(pegIndex) && pegIndex >= 0 && pegIndex < this.pegs.length) {
+      target = this.pegs[pegIndex];
+    } else {
+      target = this.pegs.find((p) => !p.upgraded) || this.pegs[0];
+    }
+
+    if (target) {
+      target.upgraded = true;
+      target.level = (target.level || 1) + 1;
+      target.bonusPoints = (target.bonusPoints || 10) + 18;
+      target.multBonus = Number(((target.multBonus || 0.25) + 0.35).toFixed(2));
+      target.goldBonus = (target.goldBonus || 0) + 5;
+      target.devourBonus = (target.devourBonus || 0) + 1;
+      target.zhName = `真印·${target.zhName.replace(/^真印·/, '')}`;
+      this.sound?.playComboChime?.(8);
+    }
+
+    return this.getState();
+  }
+
+  pickRelic(relicId = null) {
+    resolvePendingRelicDraft(this.economy, relicId);
+    return this.getState();
+  }
+
+  enterEndless() {
+    this.victory = false;
+    const res = enterEndlessMode(this.economy, 85_000_000);
+    const nextBoss = getBossForWave(res.wave);
+    this.currentBoss = nextBoss;
+    this.enemyMaxHp = nextBoss.maxHp;
+    this.enemyHp = nextBoss.hp;
+    return this.getState();
   }
 
   setSeed(seed) {
@@ -187,6 +266,7 @@ export class SigilPachinkoEngine {
     }
     if (forcedConfig.playerHp !== undefined) {
       this.playerHp = safeClamp(sanitizeNumber(forcedConfig.playerHp, 100), 0, this.playerMaxHp);
+      this.gameOver = this.playerHp <= 0;
     }
     if (forcedConfig.gold !== undefined) {
       this.economy.gold = Math.max(0, Math.floor(sanitizeNumber(forcedConfig.gold, 0)));
@@ -196,6 +276,9 @@ export class SigilPachinkoEngine {
     }
     if (forcedConfig.greedMultiplier !== undefined) {
       this.economy.greedMultiplier = Math.max(0.1, sanitizeNumber(forcedConfig.greedMultiplier, 1.0));
+    }
+    if (forcedConfig.launchAim !== undefined) {
+      this.setLaunchAim(forcedConfig.launchAim);
     }
 
     const spawnerArr =
@@ -223,11 +306,18 @@ export class SigilPachinkoEngine {
    * Primary Action (`Space` / `[🔮 释放炼金法球]`):
    * Spawns 3 alchemical orbs from the 1×3 top spawner, resolves mid-air collision Auto-Devour
    * (`<1000ms`), bounces through the 24-peg elemental cascade with ascending chimes,
-   * and settles into the 5 bottom multiplier crucibles (`×2 / ×5 / ×25 JACKPOT`).
+   * and targets the 5 bottom multiplier crucibles (`×2 / ×5 / ×25 JACKPOT`).
    */
   performPrimaryAction(payload = {}) {
     this.flowTracker.startTurn();
     this.flowTracker.startSettlement();
+
+    // Non-blocking Relic Draft Auto-Advance (`T6-31`)
+    const autoResolvedDraft =
+      Array.isArray(this.economy.pendingRelicDraft) && this.economy.pendingRelicDraft.length > 0;
+    if (autoResolvedDraft) {
+      resolvePendingRelicDraft(this.economy, null);
+    }
 
     if (payload && typeof payload === 'object') {
       if (Array.isArray(payload.spawner)) {
@@ -240,8 +330,12 @@ export class SigilPachinkoEngine {
           4
         );
       }
+      if (payload.launchAim) {
+        this.setLaunchAim(payload.launchAim);
+      }
     }
 
+    const wasOvertime = (this.economy.pullsRemaining || 0) <= 0;
     consumePull(this.economy, { spendGold: false });
 
     // 1. Roll or consume forced 1×3 Spawner Orbs
@@ -262,36 +356,39 @@ export class SigilPachinkoEngine {
       this.sound?.playReelClack?.(i, 3);
     }
 
-    // 2. Instantiate 3 Falling Orb Entities
-    const activeOrbs = this.spawner.map((slot, idx) => ({
-      id: `orb_${idx}_${slot.orbId}`,
-      index: idx,
-      orbId: slot.orbId,
-      name: slot.name,
-      zhName: slot.zhName,
-      icon: slot.icon,
-      tier: slot.tier,
-      basePoints: slot.basePoints,
-      bonusPoints: 0,
-      mult: slot.mult,
-      goldBonus: slot.goldBonus || 0,
-      x: SPAWNER_X_COORDS[idx] || 400,
-      y: ARENA_BOUNDS.spawnerY + 25,
-      vx: idx === 0 ? 42 : idx === 2 ? -42 : (this.prng.next() - 0.5) * 35,
-      vy: 280,
-      radius: 14,
-      devourStacks: 0,
-      eatenCount: 0,
-      bounceCount: 0,
-      targetCrucibleIndex: 2,
-      crucibleIndex: 2,
-      settled: false,
-      devoured: false,
-    }));
+    const aimSpec = AIM_MODES[this.launchAim] || AIM_MODES.center;
+
+    // 2. Instantiate 3 Falling Orb Entities (`T6-26` progressive cascade: start at y=80, settled=false)
+    const activeOrbs = this.spawner.map((slot, idx) => {
+      const baseVx = idx === 0 ? 42 : idx === 2 ? -42 : (this.prng.next() - 0.5) * 35;
+      return {
+        id: `orb_${idx}_${slot.orbId}`,
+        index: idx,
+        orbId: slot.orbId,
+        name: slot.name,
+        zhName: slot.zhName,
+        icon: slot.icon,
+        tier: slot.tier,
+        basePoints: slot.basePoints,
+        bonusPoints: 0,
+        mult: slot.mult,
+        goldBonus: slot.goldBonus || 0,
+        x: slot.x,
+        y: ARENA_BOUNDS.spawnerY + 25,
+        vx: safeClamp(baseVx + aimSpec.shiftVx, -220, 220),
+        vy: 280,
+        radius: 14,
+        devourStacks: 0,
+        eatenCount: 0,
+        bounceCount: 0,
+        targetCrucibleIndex: 2,
+        crucibleIndex: 2,
+        settled: false,
+        devoured: false,
+      };
+    });
 
     // 3. Mid-Air Collision Auto-Devour (`<1000ms` Orb Fusion)
-    // Higher-tier orbs devour lower-tier orbs mid-air.
-    // Note: Identical-tier orbs NEVER mutually delete all orbs (`T2-F17-02`).
     let turnDevourStacks = 0;
     const devourEvents = [];
     const sortedByTier = [...activeOrbs].sort((a, b) => b.tier - a.tier || a.index - b.index);
@@ -301,12 +398,12 @@ export class SigilPachinkoEngine {
       const candidate = sortedByTier[i];
       if (highestOrb.tier > candidate.tier) {
         candidate.devoured = true;
-        const meta = ORB_MAP[highestOrb.orbId] || ORB_LIST[0];
-        const stacksGain = Math.max(1, (meta.devourStacksBonus || 1) + 1);
+        const preyMeta = ORB_MAP[candidate.orbId] || ORB_LIST[0];
+        const stacksGain = Math.max(1, preyMeta.devourStacksBonus || 1);
         highestOrb.eatenCount += 1;
         highestOrb.devourStacks += stacksGain;
         highestOrb.bonusPoints += candidate.basePoints + 20;
-        highestOrb.mult = Number((highestOrb.mult * candidate.mult).toFixed(2));
+        highestOrb.mult = Number((highestOrb.mult + Math.max(0.2, candidate.mult - 1)).toFixed(2));
         highestOrb.radius += 4;
         turnDevourStacks += stacksGain;
 
@@ -339,6 +436,7 @@ export class SigilPachinkoEngine {
 
     let pegMultAccumulator = 0;
     let chimeStep = 0;
+    let unupgradedPegDevourCount = 0;
     for (const orb of survivingOrbs) {
       if (orb.goldBonus > 0) {
         this.economy.gold += orb.goldBonus;
@@ -360,14 +458,21 @@ export class SigilPachinkoEngine {
           if (peg.goldBonus > 0) {
             this.economy.gold += peg.goldBonus;
           }
-          if (peg.devourBonus > 0) {
-            turnDevourStacks += peg.devourBonus;
-            orb.devourStacks += peg.devourBonus;
+          if (peg.devourBonus > 0 && (peg.upgraded || unupgradedPegDevourCount < 1)) {
+            const gain = peg.upgraded ? peg.devourBonus : 1;
+            if (!peg.upgraded) unupgradedPegDevourCount += 1;
+            turnDevourStacks += gain;
+            orb.devourStacks += gain;
           }
           this.sound?.playComboChime?.(chimeStep);
           chimeStep = Math.min(24, chimeStep + 1);
         }
       }
+    }
+
+    const relicMods = getRelicModifiers(this.economy);
+    if (turnDevourStacks > 0 && relicMods.bonusDevourStacks > 0) {
+      turnDevourStacks += relicMods.bonusDevourStacks;
     }
 
     // 5. Bottom 5 Multiplier Crucible Capture (`×2 / ×5 / ×25 JACKPOT`)
@@ -388,13 +493,18 @@ export class SigilPachinkoEngine {
       if (forcedCrucible !== null && forcedCrucible !== undefined) {
         cIdx = safeClamp(forcedCrucible, 0, 4);
       } else if (this.chaosTiltActive) {
-        // Chaos Tilt biases orbs toward Center ×25 Jackpot Crucible (index 2) or Inner ×5 (1, 3)
         const r = this.prng.next();
         cIdx = r < 0.55 ? 2 : r < 0.78 ? 1 : 3;
+      } else if (this.launchAim === 'left') {
+        const r = this.prng.next();
+        cIdx = r < 0.35 ? 1 : r < 0.65 ? 0 : 2;
+      } else if (this.launchAim === 'right') {
+        const r = this.prng.next();
+        cIdx = r < 0.35 ? 3 : r < 0.65 ? 4 : 2;
       } else {
         const r = this.prng.next();
-        if (r < 0.22) cIdx = 2;
-        else if (r < 0.52) cIdx = 1;
+        if (r < 0.08) cIdx = 2;
+        else if (r < 0.45) cIdx = 1;
         else if (r < 0.82) cIdx = 3;
         else if (r < 0.91) cIdx = 0;
         else cIdx = 4;
@@ -403,7 +513,7 @@ export class SigilPachinkoEngine {
       const targetCrucible = this.crucibles[cIdx] || this.crucibles[2];
       orb.targetCrucibleIndex = cIdx;
       orb.crucibleIndex = cIdx;
-      orb.vx = safeClamp((targetCrucible.centerX - orb.x) * 1.4, -200, 200);
+      orb.vx = safeClamp((targetCrucible.centerX - orb.x) * 1.4 + aimSpec.shiftVx * 0.5, -200, 200);
       orb.vy = 320;
 
       targetCrucible.capturedCount += 1;
@@ -447,21 +557,22 @@ export class SigilPachinkoEngine {
       triggeredSynergies.push('CHAOS_TILT_OVERDRIVE');
       chainSynergyMultiplier *= this.chaosTiltMultiplier;
     }
+    chainSynergyMultiplier = Number((chainSynergyMultiplier * relicMods.chainMultBonus).toFixed(2));
 
     const settlementDurationMs = Math.min(460, 180 + devourEvents.length * 70);
     this.flowTracker.completeSettlement(settlementDurationMs);
 
     const comboName = hitJackpotCrucible
-      ? '×25 深渊核心坩埚大奖 (JACKPOT CRUCIBLE!)'
+      ? '×25 深渊核心坩埚大奖'
       : devourEvents.length > 0
-        ? '半空炼金吞噬融合 (Mid-Air Alchemical Fusion)'
-        : '咒印弹珠共鸣齐射 (Sigil Cascade Volley)';
+        ? '半空炼金吞噬融合'
+        : '咒印弹珠共鸣齐射';
 
     const breakdown = calculateSpinDamage({
       basePoints: Math.max(20, totalBasePoints),
       lineMultiplier,
       devourStacks: turnDevourStacks,
-      chainSynergyMultiplier: Number(chainSynergyMultiplier.toFixed(2)),
+      chainSynergyMultiplier,
       greedMultiplier: this.economy.greedMultiplier,
       comboName,
       triggeredSynergies,
@@ -470,21 +581,42 @@ export class SigilPachinkoEngine {
 
     this.lastTurnBreakdown = breakdown;
 
-    // 7. Apply Damage to Alchemical Boss & Settle Wave Clear Interest (`T2-F17-05`)
+    // 7. Apply Damage to Alchemical Boss & Settle Wave Clear Interest (`T2-F17-05`, `T6-29..33`)
     if (breakdown.totalDamage >= this.enemyHp) {
-      const unusedDrops = Math.max(1, this.economy.pullsRemaining || 1);
+      const unusedDrops = Math.max(0, Math.floor(sanitizeNumber(this.economy.pullsRemaining, 0)));
       const clearedWave = this.economy.wave || 1;
       settleWaveClear(this.economy, unusedDrops, clearedWave);
-      const nextWave = Math.min(8, this.economy.wave || clearedWave + 1);
-      this.economy.wave = nextWave;
-      const nextBoss = getBossForWave(nextWave);
-      this.currentBoss = nextBoss;
-      this.enemyMaxHp = nextBoss.maxHp;
-      this.enemyHp = nextBoss.hp;
+
+      if (clearedWave >= 8 && !this.economy.endlessMode) {
+        this.victory = true;
+        this.economy.wave = 8;
+        this.enemyHp = 0;
+        this.economy.pendingRelicDraft = null;
+      } else {
+        startRelicDraft(this.economy, 3, this.prng);
+        const nextWave = this.economy.endlessMode
+          ? clearedWave + 1
+          : Math.min(8, this.economy.wave || clearedWave + 1);
+        this.economy.wave = nextWave;
+        const nextBoss = getBossForWave(nextWave);
+        this.currentBoss = nextBoss;
+        this.enemyMaxHp = nextBoss.maxHp;
+        this.enemyHp = nextBoss.hp;
+      }
     } else {
       this.enemyHp = Math.max(0, this.enemyHp - breakdown.totalDamage);
-      if (this.economy.pullsRemaining <= 0) {
-        this.economy.pullsRemaining = this.economy.maxPullsPerWave || 5;
+      this.economy.pullsRemaining = Math.max(
+        0,
+        Math.floor(sanitizeNumber(this.economy.pullsRemaining, 0))
+      );
+
+      if (wasOvertime && this.enemyHp > 0) {
+        const bossStrike = Math.max(15, sanitizeNumber(this.currentBoss?.attack, 25));
+        this.playerHp = safeClamp(this.playerHp - bossStrike, 0, this.playerMaxHp);
+        if (this.playerHp <= 0) {
+          this.playerHp = 0;
+          this.gameOver = true;
+        }
       }
     }
 
@@ -496,11 +628,29 @@ export class SigilPachinkoEngine {
   }
 
   /**
-   * Secondary Action (`R` / `[⚡ 狂暴摇台 / Chaos Tilt]`):
+   * Secondary Action (`R` / `[⚡ 狂暴摇台 / Chaos Tilt]`, Launch Aim, or 35G Peg Upgrade):
    * Applies lateral impulse toward the center ×25 JACKPOT crucible and boosts multiplier,
    * while capping instability so repeated spam never produces NaN velocities (`T2-F17-03`).
    */
   performSecondaryAction(payload = {}) {
+    if (payload && typeof payload === 'object') {
+      if (payload.action === 'aim' || payload.aim) {
+        return this.setLaunchAim(payload.aim);
+      }
+      if (payload.action === 'upgrade_peg' || payload.upgradePeg) {
+        return this.upgradeRandomPeg(payload.pegIndex);
+      }
+      if (payload.action === 'pick_relic' || payload.relicId !== undefined) {
+        return this.pickRelic(payload.relicId);
+      }
+      if (payload.action === 'enter_endless') {
+        return this.enterEndless();
+      }
+      if (payload.action === 'reset_run') {
+        return this.reset();
+      }
+    }
+
     this.chaosTiltCount = Math.min(10, (this.chaosTiltCount || 0) + 1);
     this.chaosTiltActive = true;
     this.chaosTiltMultiplier = 2.0;
@@ -584,6 +734,8 @@ export class SigilPachinkoEngine {
 
   getState() {
     const breakdown = this.lastTurnBreakdown || calculateSpinDamage({ basePoints: 0 });
+    const relics = Array.isArray(this.economy.relics) ? this.economy.relics.map((r) => ({ ...r })) : [];
+
     return {
       schemeId: this.id,
       id: this.id,
@@ -596,9 +748,12 @@ export class SigilPachinkoEngine {
       pullsUsed: this.economy.pullsUsed,
       playerHp: this.playerHp,
       playerMaxHp: this.playerMaxHp,
+      bossId: this.currentBoss?.id || 'pachinko_boss_1',
+      currentBoss: this.currentBoss ? { ...this.currentBoss } : null,
       enemyName: this.currentBoss?.zhName || '炼金泥偶守卫',
       enemyHp: Math.round(this.enemyHp),
       enemyMaxHp: Math.round(this.enemyMaxHp),
+      launchAim: this.launchAim || 'center',
       chaosTiltCount: this.chaosTiltCount,
       chaosTiltActive: this.chaosTiltActive,
       overloadTriggered: this.overloadTriggered,
@@ -606,6 +761,15 @@ export class SigilPachinkoEngine {
       pegs: this.pegs.map((p) => ({ ...p })),
       crucibles: this.crucibles.map((c) => ({ ...c, capturedOrbs: [...(c.capturedOrbs || [])] })),
       orbs: this.orbs.map((o) => ({ ...o })),
+      relics,
+      ownedRelics: relics,
+      pendingRelicDraft: Array.isArray(this.economy.pendingRelicDraft)
+        ? this.economy.pendingRelicDraft.map((r) => ({ ...r }))
+        : null,
+      lastSettlement: this.economy.lastSettlement ? { ...this.economy.lastSettlement } : null,
+      victory: Boolean(this.victory),
+      gameOver: Boolean(this.gameOver || this.playerHp <= 0),
+      endlessMode: Boolean(this.economy.endlessMode),
       lastDevourEvents: this.lastDevourEvents.map((d) => ({ ...d })),
       lastTurnBreakdown: { ...breakdown },
       lastFormula: { ...breakdown },

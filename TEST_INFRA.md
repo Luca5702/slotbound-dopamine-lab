@@ -13,9 +13,13 @@ All E2E tests are designed strictly from `/home/antigravity/.agents/teamwork/ORI
 ## 2. Test Runner & Progressive Tier Architecture
 
 - **Master Runner**: `/home/antigravity/scripts/verify-e2e.js`
-  - Run all tiers (Tiers 1–5):
+  - Run all tiers (Tiers 1–6 — `285` total cases):
     ```bash
     node scripts/verify-e2e.js
+    ```
+  - Run Round 1 baseline regression gate (Tiers 1–5 — `250` cases):
+    ```bash
+    node scripts/verify-e2e.js --tier=1 --tier=2 --tier=3 --tier=4 --tier=5
     ```
   - Run individual progressive tiers:
     ```bash
@@ -24,6 +28,7 @@ All E2E tests are designed strictly from `/home/antigravity/.agents/teamwork/ORI
     node scripts/verify-e2e.js --tier=3
     node scripts/verify-e2e.js --tier=4
     node scripts/verify-e2e.js --tier=5
+    node scripts/verify-e2e.js --tier=6
     ```
   - Run directly via Node's built-in test runner:
     ```bash
@@ -32,15 +37,17 @@ All E2E tests are designed strictly from `/home/antigravity/.agents/teamwork/ORI
     node --test tests/e2e/tier3-cross-feature.test.js
     node --test tests/e2e/tier4-real-world-scenarios.test.js
     node --test tests/e2e/tier5-adversarial-hardening.test.js
+    node --test tests/e2e/tier6-visual-gameplay-polish.test.js
     ```
 
 ### Test File Layout
-- `/home/antigravity/tests/e2e/helpers/e2e-harness.js`: Shared opaque-box ESM loader (`loadProjectModule`, `requireExport`, `readProjectText`, `fileExists`), contract normalization adapters (`normalizeDamageBreakdown`, `normalizeGameState`, `forceEngineState`, `createPRNGInstance`, `invokeCalculateSpinDamage`, `invokeSettleWaveClear`, `createEventBusInstance`, `createFlowTrackerInstance`, `createSoundEngineInstance`), deterministic mock DOM/Canvas2D/WebAudio environment (`installMockBrowserEnv`), and Headless Chromium WebSocket CDP runner (`startStaticServer`, `withHeadlessBrowser`).
-- `/home/antigravity/tests/e2e/tier1-feature-coverage.test.js`: **Tier 1 — Feature Coverage** (`5` happy-path tests per feature × 19 features = **`95` tests**).
-- `/home/antigravity/tests/e2e/tier2-boundary-corner.test.js`: **Tier 2 — Boundary & Corner Cases** (`5` boundary/edge/invalid-input tests per feature × 19 features = **`95` tests**).
-- `/home/antigravity/tests/e2e/tier3-cross-feature.test.js`: **Tier 3 — Cross-Feature Combinations** (**`20` pairwise interaction tests** across all 19 features).
+- `/home/antigravity/tests/e2e/helpers/e2e-harness.js`: Shared opaque-box ESM loader (`loadProjectModule` with `AssertionError`-safe dynamic import wrapping, `requireExport`, `readProjectText`, `fileExists`), contract normalization adapters (`normalizeDamageBreakdown`, `normalizeGameState` with `ownedRelics` / `relics` / `pendingRelicDraft` aliases, `forceEngineState`, `createPRNGInstance`, `invokeCalculateSpinDamage`, `invokeSettleWaveClear`, `createEventBusInstance`, `createFlowTrackerInstance`, `createSoundEngineInstance`), deterministic mock DOM/Canvas2D/WebAudio environment (`installMockBrowserEnv` with `navigator.userAgent = 'SlotboundE2EMockBrowser'`, `rAF` timer tracking/cleanup, and `MockCanvas2DContext.getImageData`), and Headless Chromium WebSocket CDP runner (`startStaticServer`, `createHeadlessBrowserSession`, `withHeadlessBrowser` with `UNIX_PATH_MAX < 108`-safe isolated `TMPDIR` cleanup preventing `org.chromium.Chromium.*` leaks on `SIGKILL`, pre-boot HTTP `404` / `/favicon.ico` capture, CDP `Runtime` / `Network` / `Page` domains, and dynamic `setViewport`).
+- `/home/antigravity/tests/e2e/tier1-feature-coverage.test.js`: **Tier 1 — Feature Coverage** (`5` happy-path tests per feature × 19 R1 features = **`95` tests**).
+- `/home/antigravity/tests/e2e/tier2-boundary-corner.test.js`: **Tier 2 — Boundary & Corner Cases** (`5` boundary/edge/invalid-input tests per feature × 19 R1 features = **`95` tests**).
+- `/home/antigravity/tests/e2e/tier3-cross-feature.test.js`: **Tier 3 — Cross-Feature Combinations** (**`20` pairwise interaction tests** across all 19 R1 features).
 - `/home/antigravity/tests/e2e/tier4-real-world-scenarios.test.js`: **Tier 4 — Real-World Application Scenarios** (**`10` multi-wave / multi-scheme end-user gameplay & Headless Chromium E2E scenarios**).
 - `/home/antigravity/tests/e2e/tier5-adversarial-hardening.test.js`: **Tier 5 — White-Box Adversarial Hardening** (**`30` white-box adversarial & Headless Chromium E2E cases** `T5-01`..`T5-30`).
+- `/home/antigravity/tests/e2e/tier6-visual-gameplay-polish.test.js`: **Tier 6 — Round 2 Visual, Choreography, Spatial Geometry & Live Gameplay Polish** (**`35` live Headless Chromium & Node contract cases** `T6-01`..`T6-35`).
 
 ---
 
@@ -67,11 +74,24 @@ All E2E tests are designed strictly from `/home/antigravity/.agents/teamwork/ORI
 | 17 | `F-S4-01` | Scheme 4 Exploration: 《咒印弹珠台》(Sigil Pachinko) | `T1-F17-01..05` (5) | `T2-F17-01..05` (5) | `T3-17`, `T3-18` | `T4-08`, `T4-09` | `T5-20`, `T5-21`, `T5-26`, `T5-29` |
 | 18 | `F-S5-01` | Scheme 5 Exploration: 《深渊矩阵》(Abyssal Grid) | `T1-F18-01..05` (5) | `T2-F18-01..05` (5) | `T3-18`, `T3-19` | `T4-08`, `T4-09` | `T5-22`, `T5-23`, `T5-26`, `T5-29` |
 | 19 | `F-HUB-01` | Unified Arcade Hub, Live GDD Viewer, Audio Lab & Test Bridge | `T1-F19-01..05` (5) | `T2-F19-01..05` (5) | `T3-19`, `T3-20` | `T4-01`, `T4-09`, `T4-10` | `T5-24`, `T5-25`, `T5-27`, `T5-30` |
-| **Total** | **19 Features** | | **95 Cases** | **95 Cases** | **20 Cases** | **10 Cases** | **30 Cases (250 Total)** |
+| **Total (R1)** | **19 R1 Features** | | **95 Cases** | **95 Cases** | **20 Cases** | **10 Cases** | **30 Cases (250 R1)** |
+
+### Round 2 Feature-to-Tier Mapping Matrix (`F-R2-01` .. `F-R2-08` — 35 Tier 6 Cases, 285 Total E2E Cases)
+
+| # | Feature ID | Round 2 Feature Name | Milestone | Tier 6 Verification Cases |Regression Guard in Tiers 1–5 |
+|---|------------|----------------------|-----------|---------------------------|------------------------------|
+| 20 | `F-R2-01` | Obsidian, Brushed Brass & Crimson Felt `100vh` Design System & `SpriteForge` SVG Art | M5 | `T6-01`, `T6-02`, `T6-03`, `T6-04`, `T6-05`, `T6-06`, `T6-07`, `T6-08`, `T6-09`, `T6-34` | `T1-F07-*`, `T4-09`, `T5-06`, `T5-30` |
+| 21 | `F-R2-02` | HiDPI `VFXCanvas`, 5-Factor `HUDController`, `RelicDraftBanner` & Master-Compressed `SoundEngine` | M5 | `T6-09`, `T6-10`, `T6-11`, `T6-12`, `T6-13`, `T6-29`, `T6-30`, `T6-31`, `T6-32`, `T6-33`, `T6-35` | `T1-F06-*`, `T1-F07-*`, `T5-05`, `T5-06` |
+| 22 | `F-R2-03` | Scheme 1 (`devour-reels`) R2 Visual & Gameplay Overhaul | M6 | `T6-01..03`, `T6-08`, `T6-09`, `T6-18`, `T6-23`, `T6-24`, `T6-29..33` | `T1-F08..10`, `T2-F08..10`, `T4-02..03`, `T5-08..11` |
+| 23 | `F-R2-04` | Scheme 2 (`revolver-dungeon`) R2 Visual & Gameplay Overhaul | M6 | `T6-01..03`, `T6-08`, `T6-14`, `T6-25`, `T6-29`, `T6-31`, `T6-33` | `T1-F11..13`, `T2-F11..13`, `T4-04..05`, `T5-12..15` |
+| 24 | `F-R2-05` | Scheme 3 (`jackpot-td`) R2 Real-Time Loop, Visual Lane & Tactical Hold Overhaul | M7 | `T6-01..03`, `T6-08`, `T6-15`, `T6-19`, `T6-20`, `T6-21`, `T6-22`, `T6-29`, `T6-31`, `T6-33` | `T1-F14..16`, `T2-F14..16`, `T4-06..07`, `T5-16..19`, `T5-28` |
+| 25 | `F-R2-06` | Scheme 4 (`sigil-pachinko`) & Scheme 5 (`abyssal-grid`) R2 Physics, Grid & Tactical Overhaul | M7 | `T6-01..03`, `T6-08`, `T6-16`, `T6-17`, `T6-26`, `T6-27`, `T6-28`, `T6-29`, `T6-31` | `T1-F17..18`, `T2-F17..18`, `T4-08`, `T5-20..23`, `T5-29` |
+| 26 | `F-R2-07` | Unified 60fps Browser `requestAnimationFrame` Runtime (`ArcadeHubController`) | M7 | `T6-10`, `T6-19`, `T6-34` | `T1-F19-*`, `T2-F19-*`, `T4-09..10`, `T5-25`, `T5-28..30` |
+| 27 | `F-R2-08` | Tier 6 Live Browser Visual/Gameplay E2E Suite & GitHub Pages Deployment Readiness | M8 | `T6-01` .. `T6-35` (All 35 Cases) | Full 6-Tier Suite (`285 / 285` Cases) |
 
 ---
 
-## 4. Complete Test Case ID Catalog (`250 Cases`)
+## 4. Complete Test Case ID Catalog (`285 Cases` Across Tiers 1–6)
 
 ### 4.1 Tier 1 — Feature Coverage (`tests/e2e/tier1-feature-coverage.test.js` — `95 Cases`)
 - **`F-GDD-01` (`T1-F01-01..05`)**:
@@ -258,4 +278,46 @@ All E2E tests are designed strictly from `/home/antigravity/.agents/teamwork/ORI
   - `T5-28` (`Chromium E2E`): Live Headless Chromium Scheme 3 (`Jackpot TD`) Red-Zone Clutch Nuke, 3-Star Merge & DOM Sync.
   - `T5-29` (`Chromium E2E`): Live Headless Chromium Scheme 4 (`Sigil Pachinko`) & Scheme 5 (`Abyssal Grid`) Interactive DOM & Crucible/Bingo Sync.
   - `T5-30` (`Chromium E2E`): Live Headless Chromium Sandbox Seed Coercion, 5-Scheme Jackpot Sweep & GDD Prototype Launch Round-Trip.
+
+### 4.6 Tier 6 — Round 2 Visual, Choreography, Spatial Geometry & Live Gameplay Polish (`tests/e2e/tier6-visual-gameplay-polish.test.js` — `35 Cases`)
+- **Pillar 1 — Viewport Fit, Above-the-Fold Playability & Theme (`T6-01` .. `T6-04`)**:
+  - `T6-01` (`F-R2-01`): Desktop `1440×900` zero horizontal overflow (`scrollWidth <= clientWidth + 2`) & above-the-fold primary CTA (`bottom <= 900`) across all 5 schemes.
+  - `T6-02` (`F-R2-01`): Desktop `1440×900` on-stage `[data-testid="boss-arena-card"]` & interactive stage above-the-fold fit across all 5 schemes.
+  - `T6-03` (`F-R2-01`): Mobile `390×844` responsive layout, zero horizontal clipping & positive interactive bounds across all 5 schemes.
+  - `T6-04` (`F-R2-01`): Tactile Casino-Dungeon theme palette (non-`#0b0914`/`#9b5de5`), `tabular-nums` numeric alignment & compact non-crowding `sandbox-toolbar`.
+- **Pillar 2 — Bespoke Procedural SVG Artwork (`SpriteForge.js`) & Zero Raw Debug Strings (`T6-05` .. `T6-09`)**:
+  - `T6-05` (`F-R2-01`): `SpriteForge.renderSprite()` complete 5-scheme entity, 8-relic & deterministic hash fallback contract (`viewBox="0 0 64 64"`).
+  - `T6-06` (`F-R2-01`): `SpriteForge.renderBossPortrait()` Waves `1..8` × all 5 schemes illustrated Boss portrait contract (`viewBox="0 0 120 120"`, `data-testid="boss-portrait-svg"`).
+  - `T6-07` (`F-R2-01`): Strict `MockElement` SVG parser safety audit across `120+` `SpriteForge` sprites & Boss portraits (explicit self-closing tags, zero `<text>`, zero literal `>` in attribute quotes, clean `textContent`).
+  - `T6-08` (`F-R2-01`): Live browser bespoke inline `<svg>` icons & `[data-testid="boss-portrait-svg"]` across all 5 schemes.
+  - `T6-09` (`F-R2-01`, `F-R2-02`): Zero raw `snake_case` synergy IDs (`fireball_powder_keg`, etc.) or `undefined`/`NaN` placeholders in visible stage & HUD text before & after synergies.
+- **Pillar 3 — Live 60fps `VFXCanvas`, 5-Factor `HUDController` & Master-Bus `SoundEngine` (`T6-10` .. `T6-13`)**:
+  - `T6-10` (`F-R2-02`, `F-R2-07`): Live Headless Chromium 60fps `#vfx-canvas` pixel proof (`nonZeroPixels > 200` without calling `stepSimulation()`) & real-time `.shake-tier-*` decay.
+  - `T6-11` (`F-R2-02`): `VFXCanvas.js` `syncDimensions()`, `resolveAnchor()` coordinate mapping & `T5-06` minimal 11-method spy context safety.
+  - `T6-12` (`F-R2-02`): `HUDController.js` 5-factor multiplicative scoreboard (`hud-chain-mult`, `hud-greed-mult`), `data-intensity-tier` & `hud-relic-strip` medallions.
+  - `T6-13` (`F-R2-02`): `SoundEngine.js` master `DynamicsCompressorNode` feature-detection (`T5-05` spy-safe), procedural noise transients & `55ms` combo chime micro-arpeggiator.
+- **Pillar 4 — True Spatial Geometry in Live Browser (`getBoundingClientRect()`) (`T6-14` .. `T6-18`)**:
+  - `T6-14` (`F-R2-04`): Scheme 2 (`revolver-dungeon`) true `60°` circular/radial 6-chamber drum geometry (`>=3` Y rows × `>=3` X cols, circular radius consistency).
+  - `T6-15` (`F-R2-05`): Scheme 3 (`jackpot-td`) styled horizontal `1×5` `.td-pedestal-card` row (`height >= 50`) & positioned `.td-enemy-token` lane bounds.
+  - `T6-16` (`F-R2-06`): Scheme 4 (`sigil-pachinko`) 24-peg `2D` staggered arena (`>=4` Y rows × `>=5` X cols inside board) & horizontal 5-crucible bar.
+  - `T6-17` (`F-R2-06`): Scheme 5 (`abyssal-grid`) true `4×4` CSS Grid tactical matrix geometry (`4` X columns × `4` Y rows).
+  - `T6-18` (`F-R2-03`): Scheme 1 (`devour-reels`) multi-column `1440×900` cockpit layout (`3×3` `devour-grid` side-by-side with `prob-mod-panel`).
+- **Pillar 5 — Autonomous Real-Time Loop, Tactical Depth, Exploit Fixes, Relic Draft & Network Cleanliness (`T6-19` .. `T6-35`)**:
+  - `T6-19` (`F-R2-05`, `F-R2-07`): Live browser Scheme 3 autonomous 60fps `rAF` enemy march (`prog1 > prog0` without `stepSimulation()`), `pauseRealtimeLoop`/`resumeRealtimeLoop` & non-destructive `syncRealtimeDOM`.
+  - `T6-20` (`F-R2-05`): Scheme 3 continuous turret auto-fire DPS (`shotsPerSec`) & mortal lane minions dying for Gold (fixing `Math.max(1, ...)` clamping).
+  - `T6-21` (`F-R2-05`): Scheme 3 clickable Pedestal `🔒 HOLD` (`up to 2` towers) persists held towers across lever pulls.
+  - `T6-22` (`F-R2-05`): Scheme 3 Overheated Scrap Pull penalty when `gold < pullCost`.
+  - `T6-23` (`F-R2-03`): Scheme 1 active `[R] Belch Bile Purge` (`indigestion >= 50`), Gold-backed Wheel Modding & Maw Upgrade Workshop.
+  - `T6-24` (`F-R2-03`): Scheme 1 real Boss traits & `mawArmor` hit absorption on Overtime.
+  - `T6-25` (`F-R2-04`): Scheme 2 3-Bullet Tactical Ammo Belt shop, Click-any-Chamber (`#0..#5`) targeted loading & Overtime/dry-click Boss counter-attacks.
+  - `T6-26` (`F-R2-06`): Scheme 4 multi-step browser cascade (no `0ms` teleport while preserving instant `.crucible-hit`), Launch Aim (`◀/居中/▶`) & `35G` Sigil Peg Upgrade.
+  - `T6-27` (`F-R2-06`): Live browser Scheme 5 clickable `matrix-cell-0..15` `🔒 HOLD` toggle & non-lethal `[R]` Early Fire wave-clear exploit fix.
+  - `T6-28` (`F-R2-06`): Scheme 5 wave-transition Commander Ascension merge prevents `16/16` locked board stagnation.
+  - `T6-29` (`F-R2-02`): `RelicDraftBanner.js` contract & post-wave 3-Card Relic Draft surfacing across all 5 schemes.
+  - `T6-30` (`F-R2-02`): Live browser interactive Relic Draft pick (`relic-pick-1`) updates owned relics & `hud-relic-strip`.
+  - `T6-31` (`F-R2-02`): Non-blocking Relic Draft auto-advance rule (`pendingRelicDraft[0]`) across all 5 schemes.
+  - `T6-32` (`F-R2-02`): Wave 8 Final Boss clear renders `run-victory-banner` & `btn-endless-mode` enters Wave 9+ Endless scaling (`btn-new-run` resets run).
+  - `T6-33` (`F-R2-02`): Fatal `playerHp <= 0` renders `run-defeat-banner` & `btn-retry-run` restores fresh run.
+  - `T6-34` (`F-R2-01`, `F-R2-08`): Live browser zero `404` network responses (including `/favicon.ico`), zero `pageerror`s & zero `console.error`s across all 7 tabs.
+  - `T6-35` (`F-R2-02`, `F-R2-08`): Public GitHub Pages URL (`https://luca5702.github.io/slotbound-dopamine-lab/`) in `README.md`, subpath-safe relative asset paths & `.nojekyll` presence.
 

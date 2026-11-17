@@ -1,13 +1,16 @@
 /**
- * Scheme 3: 《黄金矿工防线》(Jackpot TD) — Configuration & Catalog (`F-S3-01..03`)
+ * Scheme 3: 《黄金矿工防线》(Jackpot TD) — Configuration & Catalog (`F-S3-01..03`, `F-R2-05`)
  * 1×5 Single-Line Slot Turret Wall, 6 Tower Symbols (Ranks 1..6),
- * Yahtzee/Poker Hand Evaluator Table, 4 Real-Time Enemy Archetypes, and 8 Siege Waves.
+ * Yahtzee/Poker Hand Evaluator Table, 4 Real-Time Enemy Archetypes, and 8+ Siege Waves.
  *
  * Zero DOM dependencies — 100% Node & Browser compatible.
  */
 
+import { computeEndlessBossHp } from '../../core/EconomyEngine.js';
+
 export const TD_CONSTANTS = Object.freeze({
   PEDESTAL_COUNT: 5,
+  MAX_HELD_PEDESTALS: 2,
   RED_ZONE_THRESHOLD: 0.72,
   DEFENSE_LINE_Y: 0.85,
   BREACH_THRESHOLD: 1.0,
@@ -18,6 +21,8 @@ export const TD_CONSTANTS = Object.freeze({
   BASE_PULL_COST: 10,
   PULL_COST_ESCALATION: 2,
   RED_ZONE_CLUTCH_BOOST: 0.35,
+  OVERHEAT_DAMAGE_FACTOR: 0.55,
+  OVERHEAT_BASE_HP_PENALTY: 4,
 });
 
 export const TOWERS = Object.freeze([
@@ -254,6 +259,7 @@ export const ENEMIES = Object.freeze([
     speed: 0.14,
     hpFactor: 0.25,
     breachDamage: 8,
+    killGold: 12,
     isBoss: false,
   },
   {
@@ -264,6 +270,7 @@ export const ENEMIES = Object.freeze([
     speed: 0.08,
     hpFactor: 0.50,
     breachDamage: 12,
+    killGold: 18,
     isBoss: false,
   },
   {
@@ -275,6 +282,7 @@ export const ENEMIES = Object.freeze([
     enragedSpeed: 0.18,
     hpFactor: 0.40,
     breachDamage: 15,
+    killGold: 22,
     isBoss: false,
   },
   {
@@ -285,6 +293,7 @@ export const ENEMIES = Object.freeze([
     speed: 0.06,
     hpFactor: 1.0,
     breachDamage: 25,
+    killGold: 45,
     isBoss: true,
   },
 ]);
@@ -310,8 +319,21 @@ export const TD_BOSSES = BOSSES;
 export const WAVES = BOSSES;
 
 export function getBossForWave(waveIndex = 1) {
-  const idx = Math.max(0, Math.min(BOSSES.length - 1, Math.floor(Number(waveIndex || 1)) - 1));
-  return { ...BOSSES[idx] };
+  const w = Math.max(1, Math.floor(Number(waveIndex || 1)));
+  if (w <= BOSSES.length) {
+    return { ...BOSSES[w - 1] };
+  }
+  const base8 = BOSSES[BOSSES.length - 1];
+  const endlessHp = computeEndlessBossHp(base8.maxHp, w);
+  return {
+    ...base8,
+    wave: w,
+    name: `${base8.zhName}·无尽W${w}`,
+    zhName: `${base8.zhName}·无尽W${w}`,
+    hp: endlessHp,
+    maxHp: endlessHp,
+    rewardGold: base8.rewardGold + (w - 8) * 60,
+  };
 }
 
 export default {

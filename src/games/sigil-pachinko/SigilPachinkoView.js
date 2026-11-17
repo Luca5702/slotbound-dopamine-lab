@@ -1,14 +1,22 @@
 /**
- * Scheme 4: 《咒印弹珠台》(Sigil Pachinko / Alchemical Cascade) — Interactive Browser View (`F-S4-01`)
- * Renders all required `data-testid` attributes specified in `PROJECT.md:274`:
+ * Scheme 4: 《咒印弹珠台》(Sigil Pachinko / Alchemical Cascade) — Interactive Browser View (`F-S4-01`, `F-R2-06`)
+ * Renders all required `data-testid` attributes specified in `PROJECT.md`:
+ *  - `data-testid="boss-arena-card"` & `data-testid="boss-portrait-svg"`
  *  - `data-testid="pachinko-board"`
  *  - `data-testid="pachinko-spawner"`
  *  - `data-testid="btn-drop-orbs"`
  *  - `data-testid="btn-chaos-tilt"`
  *  - `data-testid="pachinko-crucible-0"` .. `data-testid="pachinko-crucible-4"`
+ *  - Launch Aim controls (`◀` / `居中` / `▶`) & 35G Sigil Peg Upgrade button
  */
 
 import { formatBigNumber } from '../../core/BigNumber.js';
+import { renderSprite, renderBossPortrait } from '../../ui/SpriteForge.js';
+import {
+  renderRelicDraftHTML,
+  bindRelicDraftEvents,
+  handleRelicDraftKeyDown,
+} from '../../ui/RelicDraftBanner.js';
 import { SigilPachinkoEngine } from './SigilPachinkoEngine.js';
 
 export class SigilPachinkoView {
@@ -48,9 +56,12 @@ export class SigilPachinkoView {
     this.containerEl = null;
   }
 
+  /**
+   * Drops 3 alchemical orbs from the top spawner WITHOUT synchronously calling `step(500)` (`T6-26`),
+   * allowing the real-time rAF loop (or incremental test steps) to animate the multi-step cascade.
+   */
   triggerDropOrbs(payload = {}) {
-    this.engine.performPrimaryAction(payload);
-    const state = this.engine.step(500);
+    const state = this.engine.performPrimaryAction(payload);
 
     if (this.hud && typeof this.hud.update === 'function') {
       this.hud.update(state);
@@ -58,6 +69,11 @@ export class SigilPachinkoView {
 
     if (this.vfx) {
       const bd = state.lastTurnBreakdown || {};
+      const boardAnchor =
+        typeof this.vfx.resolveAnchor === 'function'
+          ? this.vfx.resolveAnchor('[data-testid="pachinko-board"]', 480, 260)
+          : { x: 480, y: 260 };
+
       for (const orb of state.orbs || []) {
         if (!orb.devoured) {
           this.vfx.spawnProjectile?.({
@@ -71,8 +87,8 @@ export class SigilPachinkoView {
       }
       if (bd.totalDamage > 0) {
         this.vfx.spawnFloatingText?.({
-          x: 480,
-          y: 200,
+          x: boardAnchor.x,
+          y: boardAnchor.y - 40,
           text: `-${formatBigNumber(bd.totalDamage)}`,
           tier: bd.intensityTier || 1,
         });
@@ -96,8 +112,35 @@ export class SigilPachinkoView {
     return state;
   }
 
+  triggerAimChange(aim) {
+    const state = this.engine.setLaunchAim(aim);
+    this.hud?.update?.(state);
+    this.render(state);
+    return state;
+  }
+
+  triggerUpgradePeg(pegIndex = null) {
+    const state = this.engine.upgradeRandomPeg(pegIndex);
+    this.hud?.update?.(state);
+    this.render(state);
+    return state;
+  }
+
   onKeyDown(event) {
     if (!event) return false;
+    const stateNow = this.engine.getState();
+    if (
+      handleRelicDraftKeyDown(event, stateNow, {
+        onPickRelic: (relicId) => {
+          const st = this.engine.pickRelic(relicId);
+          this.hud?.update?.(st);
+          this.render(st);
+        },
+      })
+    ) {
+      return true;
+    }
+
     const code = event.code || '';
     const key = event.key || '';
 
@@ -120,53 +163,86 @@ export class SigilPachinkoView {
     return false;
   }
 
+  _buildOrbsHtml(state) {
+    return (state.orbs || [])
+      .map((orb) => {
+        const orbSvg = renderSprite(orb.orbId, { size: 20, tier: orb.tier || 2 });
+        return `
+          <div
+            class="pachinko-orb ${orb.devoured ? 'orb-devoured' : ''}"
+            data-orb-id="${orb.orbId}"
+            style="left: ${Math.round((orb.x / 800) * 100)}%; top: ${Math.round((orb.y / 520) * 100)}%;"
+          >
+            <span>${orbSvg}</span>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  /**
+   * Non-destructive real-time DOM patcher for falling orbs during rAF cascade.
+   */
+  syncRealtimeDOM(stateSnapshot = null) {
+    if (!this.containerEl || typeof this.containerEl.querySelector !== 'function') {
+      return;
+    }
+    const state = stateSnapshot || this.engine.getState();
+    const orbsLayer = this.containerEl.querySelector('.pachinko-orbs-layer');
+    if (orbsLayer) {
+      orbsLayer.innerHTML = this._buildOrbsHtml(state);
+    }
+  }
+
   render(stateSnapshot = null) {
     if (!this.containerEl || typeof this.containerEl.innerHTML === 'undefined') {
       return;
     }
 
     const state = stateSnapshot || this.engine.getState();
+    const bossHpPct = Math.max(
+      0,
+      Math.min(100, Math.round((Number(state.enemyHp || 0) / Math.max(1, Number(state.enemyMaxHp || 1))) * 100))
+    );
+    const bossPortraitSvg = renderBossPortrait(
+      state.currentBoss || { id: state.bossId, name: state.enemyName, wave: state.wave },
+      { wave: state.wave, schemeId: 'sigil-pachinko', size: 58 }
+    );
+    const relicBannerHtml = renderRelicDraftHTML(state);
 
     const spawnerHtml = (state.spawner || [])
-      .map(
-        (slot, idx) => `
+      .map((slot, idx) => {
+        const orbSvg = renderSprite(slot.orbId, { size: 24, tier: slot.tier || 1 });
+        return `
           <div class="pachinko-spawner-slot" data-spawner-index="${idx}" data-orb-id="${slot.orbId}">
-            <span class="spawner-orb-icon">${slot.icon}</span>
+            <span class="spawner-orb-icon">${orbSvg}</span>
             <span class="spawner-orb-name">${slot.zhName} (T${slot.tier})</span>
             <span class="spawner-orb-pts">${slot.basePoints}pt ×${slot.mult}</span>
           </div>
-        `
-      )
+        `;
+      })
       .join('');
 
     const pegsHtml = (state.pegs || [])
-      .map(
-        (peg) => `
+      .map((peg) => {
+        const pegSvg = renderSprite(peg.type, {
+          size: 18,
+          tier: peg.upgraded ? 3 : 2,
+        });
+        return `
           <div
-            class="pachinko-peg ${peg.active ? 'peg-active' : ''}"
+            class="pachinko-peg ${peg.active ? 'peg-active' : ''} ${peg.upgraded ? 'peg-upgraded' : ''}"
             data-peg-index="${peg.index}"
             style="left: ${Math.round((peg.x / 800) * 100)}%; top: ${Math.round((peg.y / 520) * 100)}%;"
-            title="${peg.zhName}"
+            title="${peg.zhName} (Lv.${peg.level || 1})"
           >
-            ${peg.icon}
+            ${pegSvg}
           </div>
-        `
-      )
+        `;
+      })
       .join('');
 
-    const orbsHtml = (state.orbs || [])
-      .map(
-        (orb) => `
-          <div
-            class="pachinko-orb ${orb.devoured ? 'orb-devoured' : ''}"
-            data-orb-id="${orb.orbId}"
-            style="left: ${Math.round((orb.x / 800) * 100)}%; top: ${Math.round((orb.y / 520) * 100)}%;"
-          >
-            <span>${orb.icon}</span>
-          </div>
-        `
-      )
-      .join('');
+    const orbsHtml = this._buildOrbsHtml(state);
 
     const cruciblesHtml = (state.crucibles || [])
       .map(
@@ -186,8 +262,30 @@ export class SigilPachinkoView {
       )
       .join('');
 
+    const curAim = state.launchAim || 'center';
+    const upgradedPegCount = (state.pegs || []).filter((p) => p.upgraded).length;
+
     this.containerEl.innerHTML = `
       <section class="scheme-view sigil-pachinko-view" data-testid="sigil-pachinko-view">
+        <div class="boss-arena-card" data-testid="boss-arena-card">
+          <div class="boss-portrait-frame">
+            ${bossPortraitSvg}
+          </div>
+          <div class="boss-info-col">
+            <div class="boss-header-row">
+              <h3 class="boss-name-title">${state.enemyName || '炼金泥偶守卫'}</h3>
+              <span class="boss-wave-pill">第 ${state.wave} 波首领 · 真印钉 ${upgradedPegCount}/24</span>
+            </div>
+            <div class="boss-hp-dual-track">
+              <div class="boss-hp-burn-fill" style="width: ${bossHpPct}%;"></div>
+              <div class="boss-hp-fill" style="width: ${bossHpPct}%;"></div>
+            </div>
+            <div class="boss-hp-readout">HP ${formatBigNumber(state.enemyHp)} / ${formatBigNumber(state.enemyMaxHp)} (${bossHpPct}%)</div>
+          </div>
+        </div>
+
+        ${relicBannerHtml}
+
         <div class="pachinko-spawner-bar" data-testid="pachinko-spawner">
           ${spawnerHtml}
         </div>
@@ -208,30 +306,63 @@ export class SigilPachinkoView {
         <div class="pachinko-controls-row">
           <button
             type="button"
+            class="btn-arcade btn-aim ${curAim === 'left' ? 'active' : ''}"
+            data-testid="btn-aim-left"
+            data-action="aim-left"
+            data-aim="left"
+          >
+            ◀ 左路瞄准
+          </button>
+          <button
+            type="button"
+            class="btn-arcade btn-aim ${curAim === 'center' ? 'active' : ''}"
+            data-testid="btn-aim-center"
+            data-action="aim-center"
+            data-aim="center"
+          >
+            居中瞄准
+          </button>
+          <button
+            type="button"
+            class="btn-arcade btn-aim ${curAim === 'right' ? 'active' : ''}"
+            data-testid="btn-aim-right"
+            data-action="aim-right"
+            data-aim="right"
+          >
+            右路瞄准 ▶
+          </button>
+          <button
+            type="button"
             class="btn-arcade btn-primary-action"
             data-testid="btn-drop-orbs"
           >
-            🔮 释放炼金法球 / Drop Alchemical Orbs [Space]
+            释放炼金法球 / Drop Orbs [Space]
           </button>
           <button
             type="button"
             class="btn-arcade btn-secondary-action"
             data-testid="btn-chaos-tilt"
           >
-            ⚡ 狂暴摇台 (×2.0 引力汇聚) / Chaos Tilt [R]
+            狂暴摇台 (×2.0 引力汇聚) [R]
+          </button>
+          <button
+            type="button"
+            class="btn-arcade btn-upgrade-peg"
+            data-testid="btn-upgrade-peg"
+            data-action="upgrade-peg"
+          >
+            点化咒印钉 (35G)
           </button>
         </div>
       </section>
     `;
 
-    const dropBtn =
-      typeof this.containerEl.querySelector === 'function'
-        ? this.containerEl.querySelector('[data-testid="btn-drop-orbs"]')
-        : null;
-    const tiltBtn =
-      typeof this.containerEl.querySelector === 'function'
-        ? this.containerEl.querySelector('[data-testid="btn-chaos-tilt"]')
-        : null;
+    const dropBtn = this.containerEl.querySelector?.('[data-testid="btn-drop-orbs"]');
+    const tiltBtn = this.containerEl.querySelector?.('[data-testid="btn-chaos-tilt"]');
+    const aimLeftBtn = this.containerEl.querySelector?.('[data-testid="btn-aim-left"]');
+    const aimCenterBtn = this.containerEl.querySelector?.('[data-testid="btn-aim-center"]');
+    const aimRightBtn = this.containerEl.querySelector?.('[data-testid="btn-aim-right"]');
+    const upgradePegBtn = this.containerEl.querySelector?.('[data-testid="btn-upgrade-peg"]');
 
     if (dropBtn && typeof dropBtn.addEventListener === 'function') {
       dropBtn.addEventListener('click', () => {
@@ -243,6 +374,44 @@ export class SigilPachinkoView {
         this.triggerChaosTilt();
       });
     }
+    if (aimLeftBtn && typeof aimLeftBtn.addEventListener === 'function') {
+      aimLeftBtn.addEventListener('click', () => {
+        this.triggerAimChange('left');
+      });
+    }
+    if (aimCenterBtn && typeof aimCenterBtn.addEventListener === 'function') {
+      aimCenterBtn.addEventListener('click', () => {
+        this.triggerAimChange('center');
+      });
+    }
+    if (aimRightBtn && typeof aimRightBtn.addEventListener === 'function') {
+      aimRightBtn.addEventListener('click', () => {
+        this.triggerAimChange('right');
+      });
+    }
+    if (upgradePegBtn && typeof upgradePegBtn.addEventListener === 'function') {
+      upgradePegBtn.addEventListener('click', () => {
+        this.triggerUpgradePeg();
+      });
+    }
+
+    bindRelicDraftEvents(this.containerEl, {
+      onPickRelic: (relicId) => {
+        const st = this.engine.pickRelic(relicId);
+        this.hud?.update?.(st);
+        this.render(st);
+      },
+      onEnterEndless: () => {
+        const st = this.engine.enterEndless();
+        this.hud?.update?.(st);
+        this.render(st);
+      },
+      onResetRun: () => {
+        const st = this.engine.reset({ seed: this.engine.seed });
+        this.hud?.update?.(st);
+        this.render(st);
+      },
+    });
   }
 }
 

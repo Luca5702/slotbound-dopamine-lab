@@ -1,5 +1,7 @@
 .*
 !.gitignore
 !.nojekyll
+.agents/
+Luca5702/
 node_modules/
 upload/

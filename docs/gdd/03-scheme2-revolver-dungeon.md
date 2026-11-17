@@ -130,3 +130,13 @@ flowchart TD
 | `btn-load-bullet` | 次按钮 `[塞入新子弹 (R)]` | 抽取新特种子弹装入弹巢并立即触发寄生吞噬判定 |
 | `player-hp-bar` | 玩家生命值状态条 | 展示玩家当前 `playerHp / 100 HP`（受恶魔弹炸膛或怪物反击影响） |
 | `roulette-risk-badge` | 俄罗斯轮盘概率风险徽章 | 实时展示 `命中率 Hit%`、`连发率 Chain%` 与 `炸膛风险 Backfire Risk%` |
+
+---
+
+## 6. 第二轮极坐标旋转左轮弹巢与战术弹带 (`Round 2 Radial 60° Drum & Tactical Ammo Belt`)
+
+1. **真实 `60°` 极坐标环形旋转弹巢 (`.revolver-cylinder`)**：
+   * 彻底告别 `3×2` 方格排布，6 个圆形弹仓 (`chamber-0` .. `chamber-5`) 严格按 $\theta_i = -90^\circ + i \times 60^\circ$ 极坐标环绕中央黄铜转轴 (`revolver_spindle`) 排布，12 点钟方向设猩红击锤准星。每次扣动扳机时，整座弹巢执行物理惯性旋转与枪口焰闪光 (`.is-muzzle-flashing`)，已击发弹仓留存袅袅青烟弹壳 (`smoking_casing`)。
+2. **三发战术弹带与指定弹仓装填 (`Ammo Belt & Chamber Targeting`)**：
+   * 桌面下方陈列 3 枚明牌候选特种弹 (`ammo-choice-0..2`)，玩家可点选目标弹药并点击任意弹仓设定装填落点（或直接按 `[R]` 一键快速装填），主动将 `parasite_bullet` 精准塞在两枚高点实弹之间完成双杀吞噬，或亲手拼齐顺时针连续的 **`火药 + 引信 + 重锤`** 六连发清空序列！
+

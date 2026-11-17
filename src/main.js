@@ -1,9 +1,10 @@
 /**
- * Unified Web Arcade Hub Bootstrap, Scheme Switcher, Sandbox Toolbar & E2E Telemetry Bridge (`F-HUB-01`)
+ * Unified Web Arcade Hub Bootstrap, Scheme Switcher, Sandbox Toolbar & E2E Telemetry Bridge (`F-HUB-01`, `F-R2-05`)
  * Orchestrates:
  *  - All 5 Playable Game Schemes (`devour-reels`, `revolver-dungeon`, `jackpot-td`, `sigil-pachinko`, `abyssal-grid`)
  *  - Built-in Live GDD Reader (`gdd`) & Procedural Web Audio / Math Lab (`audio-lab`)
  *  - Shared Balatro-style Score HUD (`HUDController`), 2D VFX Overlay (`VFXCanvas`), and `SoundEngine`
+ *  - Autonomous 60fps `requestAnimationFrame` Real-Time Loop (`jackpot-td`, `sigil-pachinko`, and `#vfx-canvas`)
  *  - Global Spacebar (`Space` + 2.5x Turbo) and Secondary (`R`) keyboard router
  *  - Unified Browser E2E Telemetry Bridges (`window.__SLOTBOUND__ === window.__SLOTBOUND_TEST__`)
  */
@@ -25,19 +26,46 @@ import {
 
 const SHELL_FALLBACK_HTML = `
   <div id="app" class="arcade-shell" data-testid="arcade-shell">
+    <input
+      type="checkbox"
+      id="sandbox-drawer-toggle"
+      class="sandbox-drawer-checkbox"
+      aria-label="展开或收起实验室沙盒抽屉"
+    />
     <header class="arcade-nav" data-testid="arcade-nav">
       <div class="arcade-brand">
-        <h1>🎰 SLOTBOUND DOPAMINE LAB</h1>
-        <span class="arcade-subtitle">拉杆即结算 · 连线即秒杀 · 15秒极简爽游衍生套件</span>
+        <svg class="brand-crest-svg" viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">
+          <rect x="2" y="2" width="28" height="28" rx="7" fill="#1c1510" stroke="#c89b3c" stroke-width="2" />
+          <polygon points="16,6 20,13 27,14 21.5,19.5 23,27 16,23 9,27 10.5,19.5 5,14 12,13" fill="#f3cf7a" />
+          <circle cx="16" cy="16.5" r="3.5" fill="#ef476f" />
+        </svg>
+        <div class="arcade-brand-text">
+          <h1>SLOTBOUND</h1>
+          <span class="arcade-subtitle">极简爽游实验室 · 拉杆即结算</span>
+        </div>
       </div>
       <nav class="arcade-nav-tabs" role="tablist">
-        <button type="button" class="nav-tab-btn active" data-testid="nav-scheme-1" data-scheme-id="devour-reels">👄 吞噬转轮 Devour Reels</button>
-        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-2" data-scheme-id="revolver-dungeon">🔫 左轮地牢 Revolver Dungeon</button>
-        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-3" data-scheme-id="jackpot-td">⚡ 黄金矿工防线 Jackpot TD</button>
-        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-4" data-scheme-id="sigil-pachinko">🔮 咒印弹珠台 Sigil Pachinko</button>
-        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-5" data-scheme-id="abyssal-grid">♟️ 深渊矩阵 Abyssal Grid</button>
-        <button type="button" class="nav-tab-btn" data-testid="nav-gdd-viewer" data-scheme-id="gdd">📜 设计文档中心 GDD Viewer</button>
-        <button type="button" class="nav-tab-btn" data-testid="nav-audio-lab" data-scheme-id="audio-lab">🎧 音效与数值实验室 Audio Lab</button>
+        <button type="button" class="nav-tab-btn active" data-testid="nav-scheme-1" data-scheme-id="devour-reels">
+          <span>吞噬转轮</span>
+        </button>
+        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-2" data-scheme-id="revolver-dungeon">
+          <span>左轮地牢</span>
+        </button>
+        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-3" data-scheme-id="jackpot-td">
+          <span>黄金防线</span>
+        </button>
+        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-4" data-scheme-id="sigil-pachinko">
+          <span>咒印弹珠</span>
+        </button>
+        <button type="button" class="nav-tab-btn" data-testid="nav-scheme-5" data-scheme-id="abyssal-grid">
+          <span>深渊矩阵</span>
+        </button>
+        <button type="button" class="nav-tab-btn nav-utility-btn" data-testid="nav-gdd-viewer" data-scheme-id="gdd">
+          <span>设计文档</span>
+        </button>
+        <button type="button" class="nav-tab-btn nav-utility-btn" data-testid="nav-audio-lab" data-scheme-id="audio-lab">
+          <span>音效台</span>
+        </button>
       </nav>
     </header>
     <section id="hud-container" data-testid="hud-container"></section>
@@ -46,13 +74,16 @@ const SHELL_FALLBACK_HTML = `
       <canvas id="vfx-canvas" class="vfx-overlay-canvas" data-testid="vfx-canvas" width="960" height="540"></canvas>
     </main>
     <footer class="sandbox-toolbar" data-testid="sandbox-toolbar">
-      <div class="sandbox-controls-left">
-        <label for="sandbox-seed-input" class="sandbox-label">🎲 确定性种子 (PRNG Seed):</label>
-        <input id="sandbox-seed-input" type="text" class="sandbox-seed-input" data-testid="sandbox-seed-input" value="12345" />
-        <button type="button" class="btn-arcade btn-sandbox-jackpot" data-testid="sandbox-trigger-jackpot">💥 一键触发终极大奖 / Trigger Jackpot</button>
+      <div class="sandbox-drawer-body">
+        <div class="sandbox-controls-left">
+          <label for="sandbox-seed-input" class="sandbox-label">确定性种子 (Seed)</label>
+          <input id="sandbox-seed-input" type="text" class="sandbox-seed-input" data-testid="sandbox-seed-input" value="12345" />
+          <button type="button" class="btn-arcade btn-sandbox-jackpot" data-testid="sandbox-trigger-jackpot">一键终极大奖 / Jackpot</button>
+        </div>
       </div>
-      <div class="sandbox-controls-right">
-        <button type="button" class="btn-arcade btn-audio-mute" data-testid="audio-mute-toggle" aria-pressed="false">🔊 音效开启 (Audio ON)</button>
+      <div class="sandbox-controls-right sandbox-bar-always">
+        <button type="button" class="btn-arcade btn-audio-mute" data-testid="audio-mute-toggle" aria-pressed="false">音效开启 (Audio ON)</button>
+        <label for="sandbox-drawer-toggle" class="btn-arcade btn-sandbox-toggle" data-testid="sandbox-drawer-toggle">沙盒调试 (Lab)</label>
       </div>
     </footer>
   </div>
@@ -106,7 +137,12 @@ export class ArcadeHubController {
     this.activeEngine = null;
     this.activeView = null;
     this.realtimePaused = false;
+    this._manualSimMode = false;
+    this._rafId = null;
+    this._lastFrameTime = 0;
+    this._domSyncAccumMs = 0;
     this._boundKeyDown = null;
+    this._boundPointerDown = null;
 
     this._ensureShellDOM();
 
@@ -133,6 +169,7 @@ export class ArcadeHubController {
     this._bindGlobalControls();
     this.switchScheme('devour-reels');
     this.gddViewer.loadDocument('00-master-design-philosophy').catch(() => {});
+    this._startRealtimeLoop();
   }
 
   _ensureShellDOM() {
@@ -141,6 +178,77 @@ export class ArcadeHubController {
     if (!existingShell) {
       this.doc.body.innerHTML = SHELL_FALLBACK_HTML;
     }
+  }
+
+  _isRealBrowserEnv() {
+    if (!this.win || typeof this.win.requestAnimationFrame !== 'function') return false;
+    const ua = String(this.win.navigator?.userAgent || '');
+    return !/SlotboundE2EMockBrowser/i.test(ua);
+  }
+
+  _startRealtimeLoop() {
+    if (!this._isRealBrowserEnv()) return;
+    if (this._rafId !== null) return;
+
+    this._lastFrameTime =
+      typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now();
+
+    const tick = (nowTs) => {
+      if (this.realtimePaused) {
+        this._rafId = null;
+        return;
+      }
+
+      const now = Number.isFinite(nowTs) ? nowTs : Date.now();
+      const rawDt = now - (this._lastFrameTime || now);
+      this._lastFrameTime = now;
+      const dt = Math.min(50, Math.max(4, rawDt > 0 ? rawDt : 16.67));
+
+      // 1. Always advance 60fps 2D VFX overlay & screen-shake decay (`T6-09`, `T6-10`)
+      this.vfx?.step?.(dt);
+
+      // 2. Advance real-time schemes (`jackpot-td`, `sigil-pachinko`) when not in manual test override mode (`T6-19`)
+      if (!this._manualSimMode && this.activeEngine) {
+        if (this.activeScheme === 'jackpot-td' && typeof this.activeEngine.step === 'function') {
+          const st = this.activeEngine.step(dt);
+          this._domSyncAccumMs += dt;
+          if (this._domSyncAccumMs >= 65) {
+            this._domSyncAccumMs = 0;
+            if (this.activeView && typeof this.activeView.syncRealtimeDOM === 'function') {
+              this.activeView.syncRealtimeDOM(st);
+            }
+            this.hud?.update?.(st);
+          }
+        } else if (
+          this.activeScheme === 'sigil-pachinko' &&
+          typeof this.activeEngine.step === 'function' &&
+          Array.isArray(this.activeEngine.orbs) &&
+          this.activeEngine.orbs.some((o) => !o.devoured && !o.settled)
+        ) {
+          const st = this.activeEngine.step(dt);
+          if (this.activeView && typeof this.activeView.syncRealtimeDOM === 'function') {
+            this.activeView.syncRealtimeDOM(st);
+          }
+        }
+      }
+
+      if (this.win && typeof this.win.requestAnimationFrame === 'function') {
+        this._rafId = this.win.requestAnimationFrame(tick);
+      }
+    };
+
+    this._rafId = this.win.requestAnimationFrame(tick);
+  }
+
+  _stopRealtimeLoop() {
+    if (this._rafId !== null && this.win && typeof this.win.cancelAnimationFrame === 'function') {
+      try {
+        this.win.cancelAnimationFrame(this._rafId);
+      } catch {}
+    }
+    this._rafId = null;
   }
 
   _bindGlobalControls() {
@@ -188,13 +296,19 @@ export class ArcadeHubController {
       footerMuteBtn.addEventListener('click', () => {
         const muted = this.sound.toggleMute();
         footerMuteBtn.setAttribute('aria-pressed', String(muted));
-        footerMuteBtn.textContent = muted ? '🔇 已静音 (Muted)' : '🔊 音效开启 (Audio ON)';
+        footerMuteBtn.textContent = muted ? '已静音 (Muted)' : '音效开启 (Audio ON)';
       });
     }
 
     if (this.win && typeof this.win.addEventListener === 'function') {
       this._boundKeyDown = (event) => this.onKeyDown(event);
+      this._boundPointerDown = (event) => {
+        if (event?.isTrusted === true) {
+          this._manualSimMode = false;
+        }
+      };
       this.win.addEventListener('keydown', this._boundKeyDown);
+      this.win.addEventListener('pointerdown', this._boundPointerDown);
     }
   }
 
@@ -245,6 +359,8 @@ export class ArcadeHubController {
       this.schemeMountEl.innerHTML = '';
     }
     this.vfx?.clear?.();
+    this._manualSimMode = false;
+    this._domSyncAccumMs = 0;
 
     this.activeScheme = target;
     this._updateNavHighlight();
@@ -309,6 +425,7 @@ export class ArcadeHubController {
   }
 
   forceGridOrCylinder(idsOrMatrix) {
+    this._manualSimMode = true;
     if (!this.activeEngine) {
       this.activeEngine = this._getOrCreateEngine(this.lastPlayableScheme || 'devour-reels');
     }
@@ -342,16 +459,20 @@ export class ArcadeHubController {
 
   pauseRealtimeLoop() {
     this.realtimePaused = true;
+    this._stopRealtimeLoop();
     this.vfx?.stopLoop?.();
     return true;
   }
 
   resumeRealtimeLoop() {
     this.realtimePaused = false;
+    this._manualSimMode = false;
+    this._startRealtimeLoop();
     return true;
   }
 
   stepSimulation(dtMs = 16.67, steps = 1) {
+    this._manualSimMode = true;
     const count = Math.max(1, Math.min(200, Math.floor(sanitizeNumber(steps, 1))));
     const dt = Math.max(0, sanitizeNumber(dtMs, 16.67));
     if (this.activeEngine && typeof this.activeEngine.step === 'function') {
@@ -387,10 +508,6 @@ export class ArcadeHubController {
       }
     } else {
       this.activeEngine.performPrimaryAction(payload);
-    }
-
-    if (this.activeScheme === 'sigil-pachinko') {
-      this.activeEngine.step?.(500);
     }
 
     const st = this.activeEngine.getState();
@@ -429,6 +546,9 @@ export class ArcadeHubController {
 
   onKeyDown(event) {
     if (!event) return false;
+    if (event.isTrusted === true) {
+      this._manualSimMode = false;
+    }
     const targetTag = String(event.target?.tagName || '').toUpperCase();
     if (targetTag === 'INPUT' || targetTag === 'TEXTAREA' || targetTag === 'SELECT') {
       return false;
@@ -492,10 +612,16 @@ export class ArcadeHubController {
 
   destroy() {
     this.pauseRealtimeLoop();
-    if (this.win && this._boundKeyDown && typeof this.win.removeEventListener === 'function') {
-      this.win.removeEventListener('keydown', this._boundKeyDown);
+    if (this.win && typeof this.win.removeEventListener === 'function') {
+      if (this._boundKeyDown) {
+        this.win.removeEventListener('keydown', this._boundKeyDown);
+      }
+      if (this._boundPointerDown) {
+        this.win.removeEventListener('pointerdown', this._boundPointerDown);
+      }
     }
     this._boundKeyDown = null;
+    this._boundPointerDown = null;
     if (this.activeView && typeof this.activeView.unmount === 'function') {
       this.activeView.unmount();
     }
